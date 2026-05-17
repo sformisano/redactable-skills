@@ -59,11 +59,11 @@ Call `.redacted_display()` to get redacted text. Use this path for errors, displ
 
 Apply these rules when reasoning about `Sensitive` field traversal:
 
-- Leave unannotated standard leaves (`String`, numbers, booleans, time values) unchanged—they pass through as-is.
-- Leave unannotated nested types that derive `Sensitive` unannotated so their own field policies apply.
-- Expect nested `SensitiveDisplay` types to be redacted when referenced from `SensitiveDisplay` templates.
-- Expect `Option`, `Vec`, `Box`, `Arc`, `Rc`, `Result`, maps, sets, `Cell`, and `RefCell` to delegate to their contents.
-- Ignore `PhantomData<T>`—it is skipped and does not require `T` to implement redactable traits.
+- **[guarantee]** Do not annotate standard leaves (`String`, numbers, booleans, time values) that are not sensitive—the crate passes them through unchanged.
+- **[guarantee]** Do not annotate nested types that derive `Sensitive`—the crate applies their own field policies automatically.
+- **[guarantee]** Rely on `Option`, `Vec`, `Box`, `Arc`, `Rc`, `Result`, maps, sets, `Cell`, and `RefCell` to delegate to their contents—the crate handles this.
+- **[guarantee]** Ignore `PhantomData<T>`—the crate skips it and does not require `T` to implement redactable traits.
+- **[heuristic]** Assume nested `SensitiveDisplay` types will be redacted when referenced from `SensitiveDisplay` templates—verify the template actually interpolates them.
 
 ### Anti-pattern: annotating a nested Sensitive type
 
@@ -82,6 +82,24 @@ struct Account {
 }
 ```
 
+### Anti-pattern: leaking sensitive values through format!/logging
+
+```rust
+// WRONG — bypasses redaction; raw email appears in logs
+fn log_login(user: &User) {
+    println!("Login attempt: {}", user.email);
+    tracing::info!("user email: {}", user.email);
+}
+
+// CORRECT — use the redacted form at the logging boundary
+fn log_login(user: &User) {
+    let safe = user.redact();
+    tracing::info!("Login attempt: {}", safe.email);
+}
+```
+
+**Must-do:** Never pass a sensitive field directly to `format!`, `println!`, `dbg!`, `to_string()`, or a logging macro. Always call `.redact()` or `.redacted_display()` first.
+
 If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`.
 
 ## Template
@@ -89,32 +107,24 @@ If one type needs both structural traversal and redacted display formatting, der
 Copy and adapt this skeleton for new structs:
 
 ```rust
-// 1. Choose derive: Sensitive (structured), SensitiveDisplay (text), or both via dual.
-// 2. Annotate every sensitive leaf with #[sensitive(Policy)].
-// 3. Leave nested Sensitive types unannotated.
-// 4. Wrap optional/collection fields normally—traversal delegates automatically.
-
 #[derive(Clone, redactable::Sensitive)]
 struct MyRecord {
-    // visible leaf — no annotation needed
+    // visible leaf
     id: u64,
 
-    // sensitive leaf — must annotate
     #[sensitive(redactable::Pii)]
     full_name: String,
 
-    // sensitive leaf in Option — annotate the field, not the Option
     #[sensitive(redactable::Email)]
     backup_email: Option<String>,
 
-    // nested Sensitive type — leave unannotated
+    // nested Sensitive type — unannotated
     address: Address,
 
-    // Vec of sensitive leaves
     #[sensitive(redactable::Pii)]
     aliases: Vec<String>,
 
-    // opaque JSON — redacted by default when `json` feature is enabled
+    // opaque JSON — redacted by default with `json` feature
     metadata: serde_json::Value,
 }
 
@@ -140,21 +150,21 @@ Redact at the boundary where data leaves normal program flow:
 - generated support dumps
 - ad hoc diagnostic output
 
-Do not replace raw application data with redacted data before persistence, API calls, queues, or business logic unless that is the actual product behavior. Redaction is for safe output, not for mutating source-of-truth data.
+**Must-do:** Do not replace raw application data with redacted data before persistence, API calls, queues, or business logic unless that is the actual product behavior. Redaction is for safe output, not for mutating source-of-truth data.
 
 ## What To Check
 
-When writing or reviewing code:
+When writing or reviewing code (must-do unless noted):
 
-- Every type that may be logged should derive one of the redactable derives or be wrapped at the logging boundary.
-- Every sensitive leaf should have `#[sensitive(Policy)]`.
-- Every use of `#[not_sensitive]` should be easy to justify.
-- Raw `format!`, `to_string()`, `println!`, `dbg!`, and direct logging APIs should not carry sensitive values.
+- Every type that may be logged **must** derive one of the redactable derives or be wrapped at the logging boundary.
+- Every sensitive leaf **must** have `#[sensitive(Policy)]`.
+- Every use of `#[not_sensitive]` **must** be easy to justify.
+- Raw `format!`, `to_string()`, `println!`, `dbg!`, and direct logging APIs **must not** carry sensitive values.
 - Serialization is not redaction. If redacted JSON is needed, serialize the redacted form.
 
 ## Cross-References
 
-- @skill:redactable-derive-selection
-- @skill:redactable-field-policies
-- @skill:redactable-logging-boundaries
-- @skill:redactable-review-checklist
+- @skill:redactable-derive-selection — use when choosing between Sensitive, SensitiveDisplay, or dual
+- @skill:redactable-field-policies — use when selecting or creating a Policy type
+- @skill:redactable-logging-boundaries — use when wiring redaction into logging/tracing infrastructure
+- @skill:redactable-review-checklist — use for a full pre-merge review pass

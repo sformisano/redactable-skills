@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-field-policies",
+  "runs": [
+    {
+      "run_id": "01KRVV4N8HQH4G2F474E9G0GB0",
+      "started_at": "2026-05-17T20:46:26Z",
+      "completed_at": "2026-05-17T20:48:14Z",
+      "content_hash": "dc2fb5709977247de29c6dd91665484ac3d687818a6a7246507f9ece2ff86d83",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 94,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "Use when adding or reviewing redactable field annotations to choose safe policies for leaves, containers, scalars, JSON, maps, and sets.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "Description effectively names the action (choose safe policies), trigger (adding or reviewing annotations), and scope. No change needed."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 50,
+                  "line_end": 50
+                },
+                "quote": "Do not write `#[sensitive(Pii)] customer: Customer`. That treats the whole field as one leaf and bypasses nested policies.",
+                "rule": "conciseness/redundancy",
+                "suggestion": "The nested-container anti-pattern is explained here and repeated in Common Mistakes (line ~179). Consider removing the explanation from one location and cross-referencing the other to tighten the body."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 52,
+                  "line_end": 65
+                },
+                "quote": "Use `Secret` when partial visibility is not useful. Use a more specific policy only when the visible suffix or email domain has a clear diagnostic purpose.",
+                "rule": "degrees-of-freedom/must-should-may",
+                "suggestion": "The Built-In Policies table presents eight policies but the selection guidance is a single sentence. Consider labelling the default choice (Secret) as the MUST-use fallback and specific policies as SHOULD-use when criteria are met, to make the decision hierarchy more explicit."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 14,
+                  "line_end": 14
+                },
+                "quote": "Follow the core rule: annotate sensitive leaves, not sensitive containers.",
+                "rule": "imperative-voice/consistency",
+                "suggestion": "Strong imperative voice from the opening line through every section. No change needed."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 151,
+                  "line_end": 173
+                },
+                "quote": "Use this template when adding a new `Sensitive` type:",
+                "rule": "examples-and-templates/template-present",
+                "suggestion": "Dedicated Field Template section with a reusable scaffold is excellent. No change needed."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 175,
+                  "line_end": 184
+                },
+                "quote": "Avoid these patterns:",
+                "rule": "anti-patterns/first-class",
+                "suggestion": "Six concrete anti-patterns listed, several also reinforced inline in their respective sections. Strong coverage."
+              }
+            ],
+            "summary": "Strong point: the skill excels at examples and templates, providing code samples in nearly every section plus a dedicated reusable Field Template that agents can copy directly. Weak point: minor redundancy where the nested-container anti-pattern is explained in both the Containers section and the Common Mistakes section (conciseness/redundancy). Highest-leverage next action: tighten the Built-In Policies section by explicitly labelling Secret as the mandatory default and specific policies as conditional recommendations (degrees-of-freedom/must-should-may), which would lift both the conciseness and degrees-of-freedom dimensions to 4.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 98,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "consistent-terminology",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 33,
+                  "line_end": 35
+                },
+                "quote": "## Containers Should Usually Be Unannotated\n\nIf a field's type derives `Sensitive`, leave the outer field unannotated so the nested type's own policies run.",
+                "rule": "consistent-terminology/container-scope",
+                "suggestion": "Clarify that this section is about nested `Sensitive` fields, not every container-like wrapper."
+              },
+              {
+                "dimension": "consistent-terminology",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 94,
+                  "line_end": 96
+                },
+                "quote": "## Container Types\n\nApply `#[sensitive(Policy)]` to fields wrapped in these common container types when the contained leaves are sensitive:",
+                "rule": "consistent-terminology/container-scope",
+                "suggestion": "Use a distinct term such as `walkable string containers` or explicitly contrast this with nested `Sensitive` fields."
+              }
+            ],
+            "summary": "Strong point: the skill is concise, imperative, and rich in examples, templates, and concrete anti-patterns. Weak point: `container` is used for both nested `Sensitive` fields and walkable wrapper/container fields, as noted in consistent-terminology/container-scope. Highest-leverage next action: rename or define those two container concepts before the two sections diverge.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

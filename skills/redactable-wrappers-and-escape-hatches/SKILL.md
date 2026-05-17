@@ -11,7 +11,7 @@ metadata:
 
 Use this skill when a field cannot be handled cleanly by derive macros, or when a logging boundary needs an explicit safe wrapper.
 
-Escape hatches are useful, but they are also where leaks usually happen. Use the narrowest one that says what you mean.
+Choose the narrowest wrapper or escape hatch that states the intended safety behavior. Treat every escape hatch as a leak risk until the call site proves otherwise.
 
 ## `SensitiveValue<T, P>`
 
@@ -26,7 +26,7 @@ struct AuthConfig {
 }
 ```
 
-Rely on `Debug` and `.redacted()` for redacted output. Call `.expose()` only at boundaries that truly need the raw value.
+Rely on `Debug` and `.redacted()` for redacted output. Call `.expose()` only when crossing a boundary that must consume raw data, such as an outbound API request, database write, queue message, or crypto/signing call. Before adding `.expose()`, verify the value is not formatted, logged, included in errors, or passed to telemetry on the same path.
 
 Prefer `SensitiveValue<T, P>` when accidental raw formatting is a real risk, when the value type comes from another crate, or when a `Sensitive` container needs a leaf with an explicit policy.
 
@@ -92,40 +92,64 @@ Bad uses:
 - nested `Sensitive` types
 - anything named `name`, `email`, `phone`, `address`, `token`, `secret`, `payload`, `metadata`, or `context` unless you have checked the data source
 
+Do not skip traversal on nested sensitive values:
+
+```rust
+#[derive(redactable::Sensitive)]
+struct Signup {
+    #[not_sensitive]
+    email: String, // Bad: this can leak the raw email in redacted output.
+}
+```
+
 Remember that `#[not_sensitive]` skips traversal. If you put it on a nested sensitive value, inner sensitive fields will not be redacted.
 
 ## Logging Boundary Wrappers
 
-Use these wrappers when a value is safe and you need to satisfy a logging boundary:
+Use these wrappers only when the value is safe and the logging sink needs an explicit formatting adapter:
 
 | Wrapper | Meaning |
 |---|---|
-| `.not_sensitive_display()` | log with `Display` |
-| `.not_sensitive_debug()` | log with `Debug` |
-| `.not_sensitive_json()` | log as raw JSON, requires the `json` feature |
-| `.not_sensitive()` | generic wrapper, only useful when the sink knows how to format the inner type |
+| `.not_sensitive_display()` | log simple operational values with `Display` |
+| `.not_sensitive_debug()` | log values whose `Debug` output is audited as safe |
+| `.not_sensitive_json()` | log raw JSON, requires the `json` feature |
+| `.not_sensitive()` | pass through to a sink that formats the inner type safely |
 
-Use `.not_sensitive_display()` for simple operational values such as counts, enum names, durations, and status codes.
+```rust
+tracing::info!(
+    status = %response.status().not_sensitive_display(),
+    elapsed_ms = ?elapsed.as_millis().not_sensitive_debug(),
+    "request complete"
+);
+```
 
-Use `.not_sensitive_debug()` only when the `Debug` output is known not to contain sensitive data.
+Do not use `.not_sensitive_debug()` on request bodies, error contexts, metadata maps, or other values whose `Debug` output can include user input.
 
 ## Redacted Output Wrappers
 
-Use these when the value itself has redactable support and the sink wants a single output type:
+Use these wrappers when the value has redactable support and the sink wants one already-redacted output value:
 
 | Wrapper | Meaning |
 |---|---|
-| `.redacted_output()` | redacts and emits text using redacted `Debug` |
-| `.redacted_json()` | redacts and then serializes to JSON |
-| `.redacted_display()` | redacted text for `SensitiveDisplay` types |
+| `.redacted_output()` | redact and emit text using redacted `Debug` |
+| `.redacted_json()` | redact and then serialize to JSON |
+| `.redacted_display()` | emit redacted text for `SensitiveDisplay` types |
 
-Prefer `.redacted_json()` for structured telemetry when the type implements `Serialize`.
+```rust
+tracing::info!(
+    account = %account.redacted_display(),
+    payload = %event.redacted_json(),
+    "publishing safe telemetry"
+);
+```
+
+Prefer `.redacted_json()` for structured telemetry when the type implements `Serialize`. Do not substitute `.not_sensitive_json()` unless the raw JSON has been audited as non-sensitive.
 
 ## Serialization Is Raw Unless You Redact First
 
 Treat serialization as raw output unless you explicitly redact before the boundary.
 
-`SensitiveValue<T, P>` serializes its inner value unchanged when the `json` feature is enabled. This is intentional because APIs, databases, and queues usually need the real value.
+Expect `SensitiveValue<T, P>` to serialize its inner value unchanged when the `json` feature is enabled. Use raw serialization for APIs, databases, and queues that require the real value.
 
 Apply the same rule to normal `Sensitive` structs: deriving `Serialize` does not mean serialization is redacted.
 

@@ -9,13 +9,11 @@ metadata:
 ---
 # Redactable Logging Boundaries
 
-Use this skill when writing logging, telemetry, trace, or diagnostic output around redactable types.
-
-Redaction must happen before data reaches the sink. The sink is anything that leaves normal program memory: logs, traces, error reports, metrics labels, support dumps, CLI output, or debug files.
+Treat every logging path as a sink boundary. A sink is anything that leaves normal program memory: logs, traces, error reports, metrics labels, support dumps, CLI output, or debug files. Redact before data reaches that boundary.
 
 ## Safe Boundaries
 
-Prefer boundaries that require redactable marker traits or redacted output wrappers.
+Use boundaries that require redactable marker traits or redacted output wrappers. Deviate only when an existing project wrapper enforces the same redaction contract or when the value is explicitly marked non-sensitive before it crosses the boundary.
 
 Good patterns:
 
@@ -33,6 +31,18 @@ Bad patterns:
 - `format!("{value}")` or `value.to_string()` on a sensitive value
 - serializing a sensitive value and assuming serde will redact it
 
+Do not rely on serde serialization as a redaction boundary. `Serialize` sees the value it is given; if the caller did not convert through a redactable wrapper or helper first, runtime output can expose raw fields.
+
+Replace raw sink calls with wrapper-based calls before values reach the sink.
+
+```rust
+// Bad: raw value reaches the tracing sink.
+tracing::info!(user = ?user, "created account");
+
+// Good: caller chooses the redacted representation first.
+tracing::info!(user = ?user.tracing_redacted(), "created account");
+```
+
 ## Slog
 
 Enable the `slog` feature when using slog.
@@ -49,7 +59,7 @@ Use `SlogRedacted` as a compile-time gate in logging helpers.
 fn assert_safe<T: redactable::slog::SlogRedacted>(_: &T) {}
 ```
 
-For structured data, `Sensitive` emits redacted JSON through slog. For display data, `SensitiveDisplay` emits the redacted display string.
+For structured data, use `Sensitive` to emit redacted JSON through slog. For display data, use `SensitiveDisplay` to emit the redacted display string.
 
 If `redactable-derive` cannot find a top-level `slog` crate, set `REDACTABLE_SLOG_CRATE` to the path of the re-exported slog crate, such as `my_logging::slog`.
 
@@ -65,14 +75,14 @@ Do not pass raw values directly to tracing fields unless the project has its own
 
 ## Custom Pipelines
 
-Use `ToRedactedOutput` for custom logging boundaries when callers must pass an explicit redacted or non-sensitive wrapper.
+Accept `ToRedactedOutput` at custom sink boundaries when callers must pass an explicit redacted or non-sensitive wrapper.
 
-It returns `RedactedOutput`, which is either:
+Treat `RedactedOutput` as the only payload shape the sink may receive:
 
 - `Text(String)`
 - `Json(serde_json::Value)` when the `json` feature is enabled
 
-Accepting `ToRedactedOutput` is safer than accepting `Display`, `Debug`, or `Serialize`, because it says the caller must provide a redacted representation or an explicit non-sensitive wrapper.
+Prefer `ToRedactedOutput` over `Display`, `Debug`, or `Serialize` because it requires a redacted representation or an explicit non-sensitive wrapper.
 
 Use this boundary template for custom sinks. Keep the wrapper requirement at the public boundary and write only the converted `RedactedOutput` to the sink.
 
@@ -98,11 +108,11 @@ write_safe_field(&mut sink, "user_id", user_id.not_sensitive_display());
 write_safe_field(&mut sink, "payload", payload.redacted_json());
 ```
 
-Raw strings do not implement `ToRedactedOutput`. Raw strings only pass through the lower-level `RedactableWithFormatter` path used inside redacted display templates. If a string is safe for a custom sink, the caller must say so with `.not_sensitive_display()`, `.not_sensitive_debug()`, `.not_sensitive_json()`, or a project wrapper with the same explicit meaning.
+Reject raw strings at custom sink boundaries. Raw strings do not implement `ToRedactedOutput`; they only pass through the lower-level `RedactableWithFormatter` path used inside redacted display templates. If a string is safe for a custom sink, require `.not_sensitive_display()`, `.not_sensitive_debug()`, `.not_sensitive_json()`, or a project wrapper with the same explicit meaning.
 
 ## Non-Sensitive Values
 
-Operational values still need to be explicit at logging boundaries when the boundary enforces safety.
+Make operational values explicit at logging boundaries when the boundary enforces safety.
 
 Use:
 
@@ -122,13 +132,13 @@ use redactable::RedactedJsonExt;
 info!("event"; "payload" => payload.redacted_json());
 ```
 
-For slog, `.slog_redacted_json()` redacts first and then serializes. Serialization errors become placeholder strings instead of leaking raw data.
+For slog, use `.slog_redacted_json()` to redact first and then serialize. Treat serialization errors as placeholder strings instead of reasons to fall back to raw output.
 
 ## Test-Mode Debug
 
-`Sensitive` and `SensitiveDisplay` generate unredacted `Debug` in tests and with the `testing` feature. This helps assertions but means tests must not write raw debug output to shared logs or committed fixtures.
+Remember that `Sensitive` and `SensitiveDisplay` generate unredacted `Debug` in tests and with the `testing` feature. Do not write raw debug output from tests to shared logs or committed fixtures.
 
-In production builds, generated `Debug` is redacted.
+Expect generated `Debug` to be redacted in production builds.
 
 ## Cross-References
 

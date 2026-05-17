@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-review-checklist",
+  "runs": [
+    {
+      "run_id": "01KRVVAEP5GDR463SKQDTCRY14",
+      "started_at": "2026-05-17T20:50:34Z",
+      "completed_at": "2026-05-17T20:51:24Z",
+      "content_hash": "cd8d4e616900136891c39d6b05098aad1f36ea4b46198eefc85f87a9109b19c6",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 92,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 85,
+                  "line_end": 97
+                },
+                "quote": "Search for raw output bypasses:\n\n```text\nprintln!\neprintln!\ndbg!\ntracing::info!\ntracing::debug!\nlog::info!\nformat!(\nto_string()\nserde_json::to_string\n```",
+                "rule": "conciseness/inline-list",
+                "suggestion": "The raw-output search list overlaps with guidance already in companion skills (redactable-logging-boundaries). Consider condensing to the top 3-4 most common offenders and linking out for the full list."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 129,
+                  "line_end": 147
+                },
+                "quote": "### Template: correct error enum\n\n```rust\nuse redactable::{Email, SensitiveDisplay};\n\n// WRONG — email leaks through Display\n#[derive(Debug, thiserror::Error)]\nenum AccountError {\n    #[error(\"failed for {email}\")]\n    LookupFailed { email: String },\n}\n\n// CORRECT — SensitiveDisplay redacts; thiserror provides normal Error impl\n#[derive(SensitiveDisplay, thiserror::Error)]\nenum AccountError {\n    #[error(\"failed for {email}\")]\n    LookupFailed {\n        #[sensitive(Email)]\n        email: String,\n    },\n}",
+                "rule": "progressive-disclosure/inline-template",
+                "suggestion": "Three full WRONG/CORRECT template pairs are inlined. The error-enum template largely echoes the struct template pattern. Consider folding the error template into a companion skill or collapsible reference to keep the checklist scannable."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 98,
+                  "line_end": 98
+                },
+                "quote": "These are not always wrong, but they need proof that no sensitive value reaches them.",
+                "rule": "degrees-of-freedom/ambiguous-threshold",
+                "suggestion": "Clarify what constitutes sufficient 'proof' — e.g., a code comment, a test, or reviewer sign-off — so the agent knows when to accept vs. flag."
+              },
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "Apply when reviewing PRs or Rust code that handles user data, secrets, or telemetry. Finds redactable mistakes: missing policies, unsafe escape hatches, and raw logging bypasses.",
+                "rule": "description-quality/exemplary",
+                "suggestion": "Description clearly states action (reviewing), trigger (PRs or Rust code handling sensitive data), and outcome (finds redactable mistakes). No change needed."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 106,
+                  "line_end": 119
+                },
+                "quote": "### Anti-pattern: serializing without redaction\n\n```rust\n// WRONG — leaks sensitive fields into log\nlet json = serde_json::to_string(&user_profile)?;\ntracing::info!(payload = %json, \"processed request\");\n\n// CORRECT — redact before serializing for diagnostics\nlet redacted = user_profile.redacted_json();\ntracing::info!(payload = %redacted, \"processed request\");\n```",
+                "rule": "anti-patterns/exemplary",
+                "suggestion": "Anti-patterns are well-integrated with concrete WRONG/CORRECT pairs and red-flag callouts throughout. Strong section."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 103,
+                  "line_end": 103
+                },
+                "quote": "Serialization is not redaction.",
+                "rule": "imperative-voice/declarative-header",
+                "suggestion": "Minor: this is a declarative statement used as a section opener. Consider rephrasing to 'Treat serialization and redaction as separate steps.' to maintain imperative tone, though impact is minimal."
+              }
+            ],
+            "summary": "Strong skill with excellent description quality that names action, trigger, and outcome concisely. The weakest area is progressive disclosure: three full WRONG/CORRECT template blocks are inlined, making the checklist longer than necessary given that companion skills exist. The single highest-leverage improvement is to defer the error-enum template (finding progressive-disclosure/inline-template) to the referenced @skill:redactable-derive-selection companion, trimming ~20 lines and keeping the checklist tighter for the reviewing agent.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 95,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "description: \"Apply when reviewing PRs or Rust code that handles user data, secrets, or telemetry. Finds redactable mistakes: missing policies, unsafe escape hatches, and raw logging bypasses.\"",
+                "rule": "description-quality.concise-trigger-action-outcome",
+                "suggestion": "Keep this shape: it states the trigger, action, and expected review outcome concisely."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 66,
+                  "line_end": 66
+                },
+                "quote": "These are not always wrong, but they need proof that no sensitive value reaches them.",
+                "rule": "degrees-of-freedom.heuristic-proof-threshold",
+                "suggestion": "This correctly labels a heuristic rather than treating every raw-output call as automatically invalid."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 51,
+                  "line_end": 62
+                },
+                "quote": "Search for raw output bypasses:",
+                "rule": "imperative-voice.action-led-checks",
+                "suggestion": "The section uses action-led instructions and concrete search terms, which is suitable for an agent checklist."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 126,
+                  "line_end": 138
+                },
+                "quote": "### Template: redaction test",
+                "rule": "examples-and-templates.reusable-review-artifacts",
+                "suggestion": "The templates are reusable and cover structs, serialization, errors, tests, and final review findings."
+              }
+            ],
+            "summary": "Strong point: the skill is highly actionable, with concrete red flags and reusable templates for review findings and tests. Weak point: degrees of freedom and imperative voice are slightly below perfect because some guidance is heuristic prose rather than step-form commands, though rule degrees-of-freedom.heuristic-proof-threshold shows that the main heuristic is still clear. Highest-leverage next action: convert the few descriptive statements into explicit MUST/SHOULD/MAY review checks while preserving the existing examples.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

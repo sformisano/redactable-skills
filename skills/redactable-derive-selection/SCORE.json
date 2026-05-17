@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-derive-selection",
+  "runs": [
+    {
+      "run_id": "01KRVV1B22VRSMZZYSVH5P0SAT",
+      "started_at": "2026-05-17T20:45:40Z",
+      "completed_at": "2026-05-17T20:46:25Z",
+      "content_hash": "ca5bc5778d94059e52de34a0b7acdbc8a7290f13aea760225fbc038b7996cb95",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 94,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 10.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 3.75
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 3.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 4.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 4.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 4.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 5.0
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 4.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "When adding or fixing Rust redactable derives, select the correct derive so redaction, display, debug, and logging traits are generated correctly.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "Description cleanly states the action (select the correct derive), trigger (when adding or fixing redactable derives), and outcome (traits generated correctly). No change needed."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 42,
+                  "line_end": 48
+                },
+                "quote": "Avoid deriving `Sensitive` only because a type appears in a display template. Use `SensitiveDisplay` when the redacted contract is text output.",
+                "rule": "conciseness/cross-section-redundancy",
+                "suggestion": "The guidance on when NOT to use each derive is repeated across sections (Sensitive says avoid for display types, SensitiveDisplay says do not use for structured containers). Consider consolidating negative guidance into the Quick Choice table or a single decision section to reduce minor redundancy."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 12,
+                  "line_end": 16
+                },
+                "quote": "Answer these questions before choosing a derive:",
+                "rule": "degrees-of-freedom/labelling",
+                "suggestion": "The three triage questions are implicitly mandatory. Labelling them as required (e.g. 'You must answer these questions') would make the obligation explicit and distinguish them from the optional selection template."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 28,
+                  "line_end": 37
+                },
+                "quote": "Type:\nContains sensitive data: yes/no\nRequired redacted shape: structured/text/both",
+                "rule": "examples-and-templates/template-completeness",
+                "suggestion": "The selection template is reusable and thorough. Code examples cover every derive variant including wrong/right pairs. Strong dimension."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 85,
+                  "line_end": 95
+                },
+                "quote": "// Wrong: `email` is user data and needs a redaction policy.\n#[derive(Clone, redactable::NotSensitive)]\nstruct LoginContext {\n    email: String,\n}",
+                "rule": "anti-patterns/wrong-right-pairs",
+                "suggestion": "Anti-patterns are first-class throughout: NotSensitive misuse, missing dual attribute, and compile-error misdiagnosis all get concrete wrong/right code pairs tied to positive guidance."
+              }
+            ],
+            "summary": "Strong point: the skill provides exemplary anti-pattern coverage with concrete wrong/right code pairs for every derive variant, making common mistakes immediately recognizable (anti-patterns/wrong-right-pairs). Weak point: minor cross-section redundancy where each derive's 'do not use when' guidance partially restates neighbouring sections (conciseness/cross-section-redundancy). Highest-leverage next action: consolidate the negative-guidance sentences into the Quick Choice table or a single 'When NOT to use' section to tighten the body without losing information, addressing conciseness/cross-section-redundancy.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 98,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 174,
+                  "line_end": 179
+                },
+                "quote": "## Cross-References\n\n- @skill:redactable-core-model\n- @skill:redactable-field-policies\n- @skill:redactable-wrappers-and-escape-hatches\n- @skill:redactable-logging-boundaries",
+                "rule": "progressive-disclosure.cross-references-present",
+                "suggestion": "Keep these cross-references as the deeper context boundary; consider moving any future edge-case detail into the referenced companion skills instead of expanding this file."
+              }
+            ],
+            "summary": "Strong point: the skill gives a concise trigger/action/outcome description and pairs each derive choice with concrete examples and counter-examples. Weak point: progressive disclosure is good but not perfect because the skill still carries substantial inline API and compile-error detail before deferring to companion skills. Highest-leverage next action: preserve the boundary identified by progressive-disclosure.cross-references-present and move any future edge cases into the linked skills rather than growing this file.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

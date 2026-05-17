@@ -1,0 +1,487 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-wrappers-and-escape-hatches",
+  "runs": [
+    {
+      "run_id": "01KRVV6KX9D4Q90E84071KDXQE",
+      "started_at": "2026-05-17T20:48:14Z",
+      "completed_at": "2026-05-17T20:49:18Z",
+      "content_hash": "de77c1f050213c871c266c99c3f4f204f49badd9c9f52f624b4d41050cebb6a7",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 86,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "Apply when derive macros cannot handle a field or a logging boundary needs explicit wrappers, so sensitive values do not leak.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "Description clearly names the action (apply wrappers/escape hatches), trigger (derive macros fail or logging boundary needs explicit wrappers), and outcome (sensitive values do not leak). No change needed."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 65,
+                  "line_end": 75
+                },
+                "quote": "Use `.not_sensitive_display()` for simple operational values such as counts, enum names, durations, and status codes.\n\nUse `.not_sensitive_debug()` only when the `Debug` output is known not to contain sensitive data.",
+                "rule": "conciseness/redundant-guidance",
+                "suggestion": "The prose after the Logging Boundary Wrappers table partially restates the table's Meaning column. Consider consolidating the guidance into the table or keeping only genuinely new information in the prose."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 18,
+                  "line_end": 18
+                },
+                "quote": "Rely on `Debug` and `.redacted()` for redacted output. Call `.expose()` only at boundaries that truly need the raw value.",
+                "rule": "degrees-of-freedom/mandatory-vs-heuristic",
+                "suggestion": "The word 'truly' softens the constraint without giving a concrete test. Consider listing one or two boundary examples (e.g. 'outbound API call, database write') to anchor when .expose() is acceptable."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 87,
+                  "line_end": 87
+                },
+                "quote": "This is intentional because APIs, databases, and queues usually need the real value.",
+                "rule": "imperative-voice/descriptive-lapse",
+                "suggestion": "This sentence explains rationale in descriptive prose rather than directing the agent. Rewrite as an imperative, e.g. 'Expect raw serialization output; APIs, databases, and queues need the real value.'"
+              },
+              {
+                "dimension": "consistent-terminology",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 1,
+                  "line_end": 95
+                },
+                "quote": "Redactable Wrappers And Escape Hatches",
+                "rule": "consistent-terminology/one-term-per-concept",
+                "suggestion": "Terminology is consistent throughout. 'Wrapper' and 'escape hatch' are used for distinct concepts and never conflated. No change needed."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 91,
+                  "line_end": 97
+                },
+                "quote": "- @skill:redactable-core-model\n- @skill:redactable-derive-selection",
+                "rule": "progressive-disclosure/deferred-context",
+                "suggestion": "Cross-references are cleanly deferred to the end. Core instructions lead each section. No change needed."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 60,
+                  "line_end": 75
+                },
+                "quote": "| `.not_sensitive_display()` | log with `Display` |",
+                "rule": "examples-and-templates/missing-code-example",
+                "suggestion": "The Logging Boundary Wrappers and Redacted Output Wrappers sections provide tables but no code snippets showing usage in context. Adding a short inline example (e.g. tracing::info!(...)) for at least one wrapper would raise this to a 4."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 47,
+                  "line_end": 54
+                },
+                "quote": "Bad uses:\n\n- `String` fields with user input\n- nested `Sensitive` types\n- anything named `name`, `email`, `phone`, `address`, `token`, `secret`, `payload`, `metadata`, or `context` unless you have checked the data source",
+                "rule": "anti-patterns/concrete-examples",
+                "suggestion": "Good enumeration of bad uses for #[not_sensitive]. To reach a 4, add a short counter-example showing what happens when #[not_sensitive] is misapplied (e.g. a struct with a leaked email in logs)."
+              }
+            ],
+            "summary": "Strong point: the description is exemplary — it names the action, trigger, and outcome in a single sentence that matches the body's focus. Weak point: the wrapper table sections (Logging Boundary and Redacted Output) lack inline code examples, leaving the agent to guess at real call-site usage (examples-and-templates/missing-code-example). Highest-leverage next action: add one short code snippet per wrapper table showing a realistic call site (e.g. a tracing macro invocation), which would lift the examples-and-templates dimension from 3 to 4 and push the overall score above 90.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 95,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "description: \"Apply when derive macros cannot handle a field or a logging boundary needs explicit wrappers, so sensitive values do not leak.\"",
+                "rule": "description-quality.concise-trigger-outcome",
+                "suggestion": "Keep this description shape: it states the trigger, action, and safety outcome concisely."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 29,
+                  "line_end": 29
+                },
+                "quote": "Rely on `Debug` and `.redacted()` for redacted output. Call `.expose()` only at boundaries that truly need the raw value.",
+                "rule": "degrees-of-freedom.boundary-strictness",
+                "suggestion": "Define what qualifies as a raw-value boundary, or add two allowed examples and one review requirement so agents know how strict this escape hatch is."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 128,
+                  "line_end": 128
+                },
+                "quote": "`SensitiveValue<T, P>` serializes its inner value unchanged when the `json` feature is enabled. This is intentional because APIs, databases, and queues usually need the real value.",
+                "rule": "imperative-voice.descriptive-lapse",
+                "suggestion": "Consider rewriting explanatory passages as direct instructions when possible, while keeping the rationale brief."
+              }
+            ],
+            "summary": "Strong point: the description and body give a clear trigger, action, and safety outcome, reflected in description-quality.concise-trigger-outcome. Weak point: the raw exposure guidance still depends on the vague phrase \"truly need,\" noted in degrees-of-freedom.boundary-strictness. Highest-leverage next action: tighten that escape-hatch rule with explicit allowed boundary examples and a required review check.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "01KRVW1KYMZ0KY8ZZ5KWVMXXQ1",
+      "started_at": "2026-05-17T20:57:48Z",
+      "completed_at": "2026-05-17T20:58:52Z",
+      "content_hash": "5fd19055f727725432781b03e2883fa69a5decf93102a5fb1c8a6e789ec9587e",
+      "rubric_version": "v1",
+      "source": "accepted_candidate_evidence",
+      "accepted_at": "2026-05-17T21:04:03Z",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 92,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 5,
+                  "line_end": 9
+                },
+                "quote": "Use this skill when a field cannot be handled cleanly by derive macros, or when a logging boundary needs an explicit safe wrapper.",
+                "rule": "conciseness/intro-redundancy",
+                "suggestion": "The opening paragraph restates the frontmatter description almost verbatim. Consider removing or condensing the body intro since the description already covers the trigger and purpose."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 19,
+                  "line_end": 19
+                },
+                "quote": "Rely on `Debug` and `.redacted()` for redacted output.",
+                "rule": "degrees-of-freedom/implicit-must",
+                "suggestion": "'Rely on' is softer than 'Always use'. Consider marking this as a MUST if it is mandatory, or labelling it as a default preference to clarify latitude."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 30,
+                  "line_end": 55
+                },
+                "quote": "For a sensitive type from another crate, define a local policy, implement `SensitiveWithPolicy<P>` for the foreign type",
+                "rule": "progressive-disclosure/inline-template",
+                "suggestion": "The foreign-type template is substantial boilerplate. Consider moving it to a companion reference skill and linking from here, keeping only a one-liner showing the storage pattern inline."
+              }
+            ],
+            "summary": "Strong point: the skill excels at anti-patterns — every section pairs positive guidance with explicit 'do not' directives and concrete bad-use examples (e.g., the email field counter-example). Weak point: the body intro restates the frontmatter description nearly verbatim, adding minor bloat (conciseness/intro-redundancy). Highest-leverage next action: condense or remove the duplicated intro paragraph to tighten the opening and reclaim reader attention for the substantive sections.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 98,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 37,
+                  "line_end": 37
+                },
+                "quote": "Use this template only for types you cannot derive on locally:",
+                "rule": "v1.examples-and-templates.reusable-template",
+                "suggestion": "Keep the reusable template; it gives agents a concrete pattern for the hardest wrapper case."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 14,
+                  "line_end": 14
+                },
+                "quote": "Choose the narrowest wrapper or escape hatch that states the intended safety behavior. Treat every escape hatch as a leak risk until the call site proves otherwise.",
+                "rule": "v1.degrees-of-freedom.must-vs-heuristic",
+                "suggestion": "Add a compact required checklist for escape hatches that separates mandatory audit gates from wrapper-selection heuristics."
+              }
+            ],
+            "summary": "Strong point: the skill has concrete examples, a reusable foreign-type template, and named bad uses, especially under v1.examples-and-templates.reusable-template. Weak point: degrees of freedom are mostly clear but the escape-hatch audit rule could distinguish mandatory gates from heuristics more explicitly. Highest-leverage next action: add a short required checklist for escape hatches as described in v1.degrees-of-freedom.must-vs-heuristic.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

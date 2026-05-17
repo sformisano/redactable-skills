@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-core-model",
+  "runs": [
+    {
+      "run_id": "01KRVTZY7V7EXEYJ9TQM34315C",
+      "started_at": "2026-05-17T20:44:25Z",
+      "completed_at": "2026-05-17T20:45:39Z",
+      "content_hash": "b5bc45c5157b38a006affb62dc96bb3d9d4c04293ea8e91dc1c2c2537421d2dd",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 82,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 10.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 3.75
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 3.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 3.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 4.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 3.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 5.0
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 3.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "When writing or reviewing Rust code that uses the redactable crate, apply this mental model to choose correct redaction boundaries, traversal patterns, and policy annotations.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "Description clearly names the action (apply mental model), trigger (writing/reviewing Rust code using redactable), and outcome (correct redaction boundaries). Well done."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 93,
+                  "line_end": 131
+                },
+                "quote": "Copy and adapt this skeleton for new structs:",
+                "rule": "conciseness/template-length",
+                "suggestion": "The template section is comprehensive but slightly long. The inline comments repeat guidance already stated in earlier sections (e.g., 'leave nested Sensitive types unannotated'). Consider trimming redundant comments in the template."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 20,
+                  "line_end": 20
+                },
+                "quote": "Authoring guidance (should-do):",
+                "rule": "degrees-of-freedom/labelling",
+                "suggestion": "Good use of explicit labelling for should-do guidance. The 'What To Check' section uses 'should' implicitly; consider labelling items as must-do for stricter enforcement."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 55,
+                  "line_end": 60
+                },
+                "quote": "Apply these rules when reasoning about `Sensitive` field traversal:",
+                "rule": "imperative-voice/traversal-section",
+                "suggestion": "The traversal rules use descriptive phrasing ('Expect nested...', 'Leave unannotated...') which mostly works as imperative but some bullets read as descriptions. Minor issue overall."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 143,
+                  "line_end": 147
+                },
+                "quote": "@skill:redactable-derive-selection",
+                "rule": "progressive-disclosure/cross-references",
+                "suggestion": "Cross-references are properly deferred to companion skills. Consider adding a brief one-line note per cross-reference indicating when to follow the link."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 67,
+                  "line_end": 80
+                },
+                "quote": "// WRONG — overrides the nested type's own field-level policies",
+                "rule": "anti-patterns/coverage",
+                "suggestion": "One concrete anti-pattern with code example is provided. Adding anti-patterns for other common mistakes (e.g., redacting before persistence, using format! with sensitive values) would strengthen this section. The 'What To Check' section hints at these but doesn't frame them as explicit anti-patterns with wrong/right examples."
+              }
+            ],
+            "summary": "Strong point: The skill excels at examples and templates—the template skeleton with inline comments and the dual-derive Address example are immediately reusable. Weak point: Anti-patterns coverage is adequate but concentrated in one area (nested annotation); the 'What To Check' section names failure modes without pairing them with concrete wrong/right code examples. Highest-leverage next action: Expand the anti-patterns section (rule: anti-patterns/coverage) by adding a concrete wrong/right code example for raw format!/println! carrying sensitive values, which is already mentioned in 'What To Check' but lacks a code illustration.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 93,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 60,
+                  "line_end": 66
+                },
+                "quote": "Apply these rules when reasoning about `Sensitive` field traversal:\n\n- Leave unannotated standard leaves (`String`, numbers, booleans, time values) unchanged—they pass through as-is.\n- Leave unannotated nested types that derive `Sensitive` unannotated so their own field policies apply.\n- Expect nested `SensitiveDisplay` types to be redacted when referenced from `SensitiveDisplay` templates.\n- Expect `Option`, `Vec`, `Box`, `Arc`, `Rc`, `Result`, maps, sets, `Cell`, and `RefCell` to delegate to their contents.\n- Ignore `PhantomData<T>`—it is skipped and does not require `T` to implement redactable traits.",
+                "rule": "degrees-of-freedom.label-guarantees-vs-heuristics",
+                "suggestion": "Label which traversal bullets are crate guarantees versus review heuristics, especially where `Expect` could be read as weaker than `Leave` or `Ignore`."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 149,
+                  "line_end": 153
+                },
+                "quote": "- Every type that may be logged should derive one of the redactable derives or be wrapped at the logging boundary.\n- Every sensitive leaf should have `#[sensitive(Policy)]`.\n- Every use of `#[not_sensitive]` should be easy to justify.\n- Raw `format!`, `to_string()`, `println!`, `dbg!`, and direct logging APIs should not carry sensitive values.\n- Serialization is not redaction. If redacted JSON is needed, serialize the redacted form.",
+                "rule": "anti-patterns.example-review-failures",
+                "suggestion": "Add one compact wrong/right example for a logging or serialization failure mode so the checklist anti-patterns are as concrete as the nested-type example."
+              }
+            ],
+            "summary": "Strong point: the description and body align tightly around redaction boundaries, traversal, and policy annotations, with representative Rust examples and a reusable template. Weak point: the skill occasionally relies on unlabeled review heuristics and checklist-only anti-patterns; see degrees-of-freedom.label-guarantees-vs-heuristics and anti-patterns.example-review-failures. Highest-leverage next action: add a compact guarantee-vs-heuristic label pass and one wrong/right logging or serialization example.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "01KRVW1KY9BB44T4J5PJD6WTNV",
+      "started_at": "2026-05-17T20:53:33Z",
+      "completed_at": "2026-05-17T20:54:24Z",
+      "content_hash": "607308195d37481ba62a5a01e5afcc76193fbdfb6f7c80a3d2500c226be168d3",
+      "rubric_version": "v1",
+      "source": "accepted_candidate_evidence",
+      "accepted_at": "2026-05-17T21:04:03Z",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 97,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "conciseness",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 12,
+                  "line_end": 12
+                },
+                "quote": "Use this skill when writing or reviewing Rust code that uses the `redactable` crate.",
+                "rule": "conciseness/duplicate-of-description",
+                "suggestion": "The opening line nearly duplicates the frontmatter description. Remove or rephrase the body opener so it adds new context rather than restating the trigger."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 94,
+                  "line_end": 99
+                },
+                "quote": "Every type that may be logged **must** derive one of the redactable derives… Raw `format!`, `to_string()`… **must not** carry sensitive values.",
+                "rule": "conciseness/checklist-overlap",
+                "suggestion": "Several items in 'What To Check' repeat must-do rules stated earlier (e.g., the format!/logging anti-pattern). Consider consolidating into a single authoritative location or explicitly marking the checklist as a summary."
+              },
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "When writing or reviewing Rust code that uses the redactable crate, apply this mental model to choose correct redaction boundaries, traversal patterns, and policy annotations.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "No action needed — description clearly names the trigger (writing/reviewing Rust with redactable), the action (apply mental model), and the outcome (correct boundaries, traversal, annotations)."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 44,
+                  "line_end": 48
+                },
+                "quote": "[guarantee] Do not annotate standard leaves… [heuristic] Assume nested SensitiveDisplay types will be redacted…",
+                "rule": "degrees-of-freedom/explicit-labels",
+                "suggestion": "Excellent use of bracketed labels ([guarantee], [heuristic]) and explicit must-do / should-do markers throughout."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 52,
+                  "line_end": 74
+                },
+                "quote": "// WRONG — overrides the nested type's own field-level policies… // CORRECT — let User's own annotations govern its fields",
+                "rule": "anti-patterns/first-class",
+                "suggestion": "Anti-patterns are well-structured with paired WRONG/CORRECT examples. Consider adding a brief anti-pattern for misuse of #[not_sensitive] since the checklist calls it out."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 78,
+                  "line_end": 100
+                },
+                "quote": "Copy and adapt this skeleton for new structs:",
+                "rule": "examples-and-templates/template-present",
+                "suggestion": "Template is comprehensive with inline comments explaining each field category. No action needed."
+              }
+            ],
+            "summary": "Strong point: the skill excels at degrees-of-freedom labelling — every rule is explicitly tagged as [guarantee], [heuristic], must-do, or should-do, giving an agent clear signals about how tightly to follow each instruction. Weak point: minor conciseness redundancy where the 'What To Check' checklist restates must-do rules already established in earlier sections (conciseness/checklist-overlap). Highest-leverage next action: consolidate or deduplicate the repeated format!/logging prohibition (conciseness/duplicate-of-description, conciseness/checklist-overlap) so each rule appears exactly once, which would lift conciseness from 3 to 4.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 100,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "description: \"When writing or reviewing Rust code that uses the redactable crate, apply this mental model to choose correct redaction boundaries, traversal patterns, and policy annotations.\"",
+                "rule": "v1.description-quality.concise-trigger-action-outcome",
+                "suggestion": "Keep this description shape: it states the trigger, action, and expected outcome in one concise sentence."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 66,
+                  "line_end": 68
+                },
+                "quote": "// WRONG — bypasses redaction; raw email appears in logs\nfn log_login(user: &User) {\n    println!(\"Login attempt: {}\", user.email);",
+                "rule": "v1.anti-patterns.exemplified-failure-mode",
+                "suggestion": "This is strong because the failure mode is named, shown, and paired with the correct logging-boundary pattern."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 92,
+                  "line_end": 92
+                },
+                "quote": "Copy and adapt this skeleton for new structs:",
+                "rule": "v1.examples-and-templates.reusable-template",
+                "suggestion": "The reusable struct skeleton gives agents a concrete pattern to transfer into new code."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 128,
+                  "line_end": 133
+                },
+                "quote": "## Cross-References\n\n- @skill:redactable-derive-selection — use when choosing between Sensitive, SensitiveDisplay, or dual\n- @skill:redactable-field-policies — use when selecting or creating a Policy type\n- @skill:redactable-logging-boundaries — use when wiring redaction into logging/tracing infrastructure\n- @skill:redactable-review-checklist — use for a full pre-merge review pass",
+                "rule": "v1.progressive-disclosure.deferred-context",
+                "suggestion": "Continue keeping adjacent detail in focused companion skills rather than expanding this core model inline."
+              }
+            ],
+            "summary": "Strong point: the skill has concise discovery metadata and a clear core mental model, especially the trigger/action/outcome description in v1.description-quality.concise-trigger-action-outcome. Weak point: the skill is already comprehensive, so the main risk is future expansion diluting its focus despite the current cross-reference pattern in v1.progressive-disclosure.deferred-context. Highest-leverage next action: preserve the current core-first structure and move any deeper crate-specific edge cases into companion skills instead of adding them inline.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

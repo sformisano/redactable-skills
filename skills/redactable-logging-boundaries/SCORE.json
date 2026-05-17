@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "skill_slug": "redactable-logging-boundaries",
+  "runs": [
+    {
+      "run_id": "01KRVV8XS48F9N81VW4KBFMAM3",
+      "started_at": "2026-05-17T20:49:19Z",
+      "completed_at": "2026-05-17T20:50:34Z",
+      "content_hash": "136a75e3c24013a62df082242f7b2b3d1ae5222df2b63f54afeea7d4e5e72e8b",
+      "rubric_version": "v1",
+      "source": "fresh_provider_score",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 89,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "conciseness",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 7,
+                  "line_end": 7
+                },
+                "quote": "Use this skill when writing logging, telemetry, trace, or diagnostic output around redactable types.",
+                "rule": "conciseness/duplicate-description",
+                "suggestion": "The first body line nearly duplicates the frontmatter description. Remove it or replace with a brief sentence that adds context beyond the description."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 11,
+                  "line_end": 11
+                },
+                "quote": "Prefer boundaries that require redactable marker traits or redacted output wrappers.",
+                "rule": "degrees-of-freedom/unlabelled-heuristic",
+                "suggestion": "The word 'Prefer' implies a should-do heuristic but does not state when it is acceptable to deviate. Add a brief note on when a non-marker boundary is acceptable."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 15,
+                  "line_end": 24
+                },
+                "quote": "Bad patterns:\n\n- direct `println!`, `eprintln!`, or `dbg!`\n- direct `log::info!` or `tracing::info!` with raw values",
+                "rule": "examples-and-templates/missing-counter-example",
+                "suggestion": "The bad-patterns list names anti-patterns but does not show a before/after code snippet demonstrating the fix. Adding one concrete bad-to-good code pair would improve transfer."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 22,
+                  "line_end": 24
+                },
+                "quote": "- `format!(\"{value}\")` or `value.to_string()` on a sensitive value\n- serializing a sensitive value and assuming serde will redact it",
+                "rule": "anti-patterns/missing-rationale",
+                "suggestion": "These anti-patterns would benefit from a one-line rationale explaining why serde serialization does not guarantee redaction and what happens at runtime when it is used incorrectly."
+              }
+            ],
+            "summary": "Strong point: the description is exemplary — it names the action (writing logging/telemetry output), trigger (redactable types at sink boundaries), and outcome (enforced redaction) in a single concise sentence. Weak point: anti-patterns are listed but lack inline rationale and before/after code, which limits their teaching value (anti-patterns/missing-rationale). Highest-leverage next action: add a single before/after code snippet to the bad-patterns section showing a raw tracing call replaced by the redacted equivalent, addressing both examples-and-templates/missing-counter-example and anti-patterns/missing-rationale in one edit.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 94,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "conciseness",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 12,
+                  "line_end": 14
+                },
+                "quote": "Use this skill when writing logging, telemetry, trace, or diagnostic output around redactable types.\n\nRedaction must happen before data reaches the sink.",
+                "rule": "v1.conciseness.minor-repetition",
+                "suggestion": "Merge the repeated trigger sentence with the sink definition so the body opens with the non-obvious boundary rule."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 70,
+                  "line_end": 75
+                },
+                "quote": "It returns `RedactedOutput`, which is either:\n\n- `Text(String)`\n- `Json(serde_json::Value)` when the `json` feature is enabled\n\nAccepting `ToRedactedOutput` is safer than accepting `Display`, `Debug`, or `Serialize`, because it says the caller must provide a redacted representation or an explicit non-sensitive wrapper.",
+                "rule": "v1.imperative-voice.explanatory-prose",
+                "suggestion": "Keep the explanatory content, but introduce it with a direct agent action such as `Accept ToRedactedOutput at custom sink boundaries`."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 77,
+                  "line_end": 99
+                },
+                "quote": "Use this boundary template for custom sinks. Keep the wrapper requirement at the public boundary and write only the converted `RedactedOutput` to the sink.",
+                "rule": "v1.examples-and-templates.reusable-boundary-template",
+                "suggestion": "This is a strong reusable template; keep it as the central transfer example."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 29,
+                  "line_end": 34
+                },
+                "quote": "Bad patterns:\n\n- direct `println!`, `eprintln!`, or `dbg!`\n- direct `log::info!` or `tracing::info!` with raw values\n- `format(\"{value}\")` or `value.to_string()` on a sensitive value\n- serializing a sensitive value and assuming serde will redact it",
+                "rule": "v1.anti-patterns.concrete-sink-failures",
+                "suggestion": "The anti-pattern list is concrete and tied to the safe-boundary guidance; preserve this shape in related skills."
+              }
+            ],
+            "summary": "Strong point: the skill gives concise discovery metadata, concrete safe-boundary examples, a reusable custom-sink template, and explicit anti-patterns. Weak point: the opening repeats the trigger and some sections shift into explanatory prose rather than direct instructions, as noted in v1.conciseness.minor-repetition and v1.imperative-voice.explanatory-prose. Highest-leverage next action: tighten the first two body paragraphs and convert the few explanatory passages into imperative guidance while preserving the template and anti-pattern structure.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_id": "01KRVW1KYZFP9KTGKHPHEA4TQQ",
+      "started_at": "2026-05-17T21:02:23Z",
+      "completed_at": "2026-05-17T21:03:43Z",
+      "content_hash": "35371490066fddfb1827264d0b4bfceeff7689eac16249a70965a566674c8ada",
+      "rubric_version": "v1",
+      "source": "accepted_candidate_evidence",
+      "accepted_at": "2026-05-17T21:04:03Z",
+      "providers": [
+        {
+          "provider_id": "claude-code-local",
+          "model_id": "claude-opus-4-6[1m]",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 92,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 3,
+                "weight": 1.25,
+                "weighted": 9.375
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 2,
+                  "line_end": 2
+                },
+                "quote": "Use when writing logging, telemetry, trace, or diagnostic output around redactable types to enforce redaction before data reaches sinks.",
+                "rule": "description-quality/action-trigger-outcome",
+                "suggestion": "Description names the trigger (writing logging/telemetry output), action (enforce redaction), and outcome (before data reaches sinks) concisely. No change needed."
+              },
+              {
+                "dimension": "conciseness",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 72,
+                  "line_end": 74
+                },
+                "quote": "Do not pass raw values directly to tracing fields unless the project has its own wrapper that enforces redactable safety.",
+                "rule": "conciseness/redundant-guidance",
+                "suggestion": "This repeats guidance already established in the Safe Boundaries section ('Replace raw sink calls with wrapper-based calls before values reach the sink'). Consider removing the duplicated prohibition from the Tracing section."
+              },
+              {
+                "dimension": "degrees-of-freedom",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 76,
+                  "line_end": 78
+                },
+                "quote": "Accept `ToRedactedOutput` at custom sink boundaries when callers must pass an explicit redacted or non-sensitive wrapper.",
+                "rule": "degrees-of-freedom/must-vs-should",
+                "suggestion": "The Custom Pipelines section reads as mandatory but the boundary between must-use and recommended patterns is implicit. Consider labelling the template as a MUST for new custom sinks vs. a SHOULD for existing pipelines."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 8,
+                  "line_end": 8
+                },
+                "quote": "Treat every logging path as a sink boundary.",
+                "rule": "imperative-voice/consistent-verbs",
+                "suggestion": "Strong opening imperative sets the tone for the entire skill. Maintained consistently throughout."
+              },
+              {
+                "dimension": "consistent-terminology",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 8,
+                  "line_end": 8
+                },
+                "quote": "A sink is anything that leaves normal program memory: logs, traces, error reports, metrics labels, support dumps, CLI output, or debug files.",
+                "rule": "consistent-terminology/defined-terms",
+                "suggestion": "Key term 'sink' is defined inline on first use and used consistently throughout. Good practice."
+              },
+              {
+                "dimension": "progressive-disclosure",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 119,
+                  "line_end": 124
+                },
+                "quote": "- @skill:redactable-core-model\n- @skill:redactable-derive-selection\n- @skill:redactable-wrappers-and-escape-hatches\n- @skill:redactable-review-checklist",
+                "rule": "progressive-disclosure/deferred-context",
+                "suggestion": "Cross-references properly defer related context to companion skills. Core instructions come first, integrations follow, edge cases last."
+              },
+              {
+                "dimension": "examples-and-templates",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 83,
+                  "line_end": 96
+                },
+                "quote": "fn write_safe_field<T>(sink: &mut dyn LogSink, key: &str, value: T)\nwhere\n    T: ToRedactedOutput,",
+                "rule": "examples-and-templates/reusable-template",
+                "suggestion": "The custom sink boundary template is reusable and well-structured. Multiple examples cover slog, tracing, and custom pipelines with both good and bad patterns."
+              },
+              {
+                "dimension": "anti-patterns",
+                "severity": "warn",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 64,
+                  "line_end": 68
+                },
+                "quote": "Enable the `tracing` feature for tracing marker support.\n\nUse `.tracing_redacted()` for display-string output.",
+                "rule": "anti-patterns/missing-section-coverage",
+                "suggestion": "The Tracing section has one prohibition but no concrete bad-code example like the Safe Boundaries section does. Add a bad/good tracing snippet pair similar to lines 36-41 to make the anti-pattern first-class here."
+              }
+            ],
+            "summary": "Strong point: the skill excels at providing concrete, reusable code templates with paired bad/good examples across multiple integration targets (slog, tracing, custom pipelines). Weak point: some guidance is repeated across sections (e.g., the 'do not pass raw values' prohibition appears in both Safe Boundaries and Tracing), and the Tracing section lacks a concrete bad-code example to match other sections. Highest-leverage next action: add a bad/good code pair to the Tracing section (finding anti-patterns/missing-section-coverage) to bring anti-pattern coverage to the same standard as Safe Boundaries and Custom Pipelines.",
+            "provenance": {
+              "provider_id": "claude-code-local",
+              "model_id": "claude-opus-4-6[1m]",
+              "rubric_version": "v1"
+            }
+          }
+        },
+        {
+          "provider_id": "codex-local",
+          "model_id": "codex-local",
+          "envelope": {
+            "schema_version": 1,
+            "overall_pass": true,
+            "score": 98,
+            "dimensions": [
+              {
+                "id": "description-quality",
+                "raw": 4,
+                "weight": 2.5,
+                "weighted": 25.0
+              },
+              {
+                "id": "conciseness",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "degrees-of-freedom",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "imperative-voice",
+                "raw": 3,
+                "weight": 1.0,
+                "weighted": 7.5
+              },
+              {
+                "id": "consistent-terminology",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "progressive-disclosure",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              },
+              {
+                "id": "examples-and-templates",
+                "raw": 4,
+                "weight": 1.25,
+                "weighted": 12.5
+              },
+              {
+                "id": "anti-patterns",
+                "raw": 4,
+                "weight": 1.0,
+                "weighted": 10.0
+              }
+            ],
+            "findings": [
+              {
+                "dimension": "description-quality",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 3,
+                  "line_end": 3
+                },
+                "quote": "description: \"Use when writing logging, telemetry, trace, or diagnostic output around redactable types to enforce redaction before data reaches sinks.\"",
+                "rule": "description-quality.concise-trigger-action-outcome",
+                "suggestion": "Preserve this concise trigger, action, and outcome structure because it gives the agent a clear discovery signal."
+              },
+              {
+                "dimension": "imperative-voice",
+                "severity": "info",
+                "location": {
+                  "path": "SKILL.md",
+                  "line_start": 54,
+                  "line_end": 54
+                },
+                "quote": "Types deriving `Sensitive`, `SensitiveDisplay`, `NotSensitive`, and `NotSensitiveDisplay` implement `SlogRedacted` when the feature is enabled.",
+                "rule": "imperative-voice.reference-prose-lapses",
+                "suggestion": "Convert isolated reference prose into command-shaped guidance where practical, for example by starting with the action the agent should take."
+              }
+            ],
+            "summary": "Strong point: the skill gives crisp boundary rules, concrete safe and unsafe patterns, and reusable Rust templates. Weak point: a few reference sentences are descriptive rather than imperative, as noted in imperative-voice.reference-prose-lapses. Highest-leverage next action: make those isolated reference notes command-shaped while preserving the existing examples and anti-patterns.",
+            "provenance": {
+              "provider_id": "codex-local",
+              "model_id": "codex-local",
+              "rubric_version": "v1"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

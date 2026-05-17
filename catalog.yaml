@@ -1,0 +1,7 @@
+id: redactable-skills
+name: Redactable Skills
+description: "Public SkillCatalog catalog for Rust redactable crate guidance."
+taxonomy:
+  categories: []
+  owners: []
+  tags: []

@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Logging Boundaries"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Logging Boundaries
 
@@ -39,9 +39,11 @@ Replace raw sink calls with wrapper-based calls before values reach the sink.
 // Bad: raw value reaches the tracing sink.
 tracing::info!(user = ?user, "created account");
 
-// Good: caller chooses the redacted representation first.
-tracing::info!(user = ?user.tracing_redacted(), "created account");
+// Good: redact first, then log the redacted value.
+tracing::info!(user = ?user.clone().redact(), "created account");
 ```
+
+`.tracing_redacted()` requires `ToRedactedOutput`, which `SensitiveDisplay` / `NotSensitiveDisplay` types, `SensitiveValue`, and the explicit wrappers implement — structural `Sensitive` types do not. For a `Sensitive` type, log `?value.clone().redact()` or use `.tracing_redacted_valuable()` with the `tracing-valuable` feature.
 
 ## Slog
 
@@ -67,7 +69,7 @@ If `redactable-derive` cannot find a top-level `slog` crate, set `REDACTABLE_SLO
 
 Enable the `tracing` feature for tracing marker support.
 
-Use `.tracing_redacted()` for display-string output.
+Use `.tracing_redacted()` for display-string output on types that implement `ToRedactedOutput` (`SensitiveDisplay` / `NotSensitiveDisplay` types, `SensitiveValue`, explicit wrappers).
 
 Use `.tracing_redacted_valuable()` when the `tracing-valuable` feature is enabled and the subscriber supports `valuable`. This keeps structured data shape after redaction.
 
@@ -80,7 +82,9 @@ Accept `ToRedactedOutput` at custom sink boundaries when callers must pass an ex
 Treat `RedactedOutput` as the only payload shape the sink may receive:
 
 - `Text(String)`
-- `Json(serde_json::Value)` when the `json` feature is enabled
+- `Json(serde_json::Value)` when redactable's `json` feature is enabled
+
+`RedactedOutput` is `#[non_exhaustive]` (0.8+): matches in your crate must carry a wildcard arm. Do not gate match arms on `#[cfg(feature = "json")]` in your own crate — that checks *your* feature namespace, not redactable's.
 
 Prefer `ToRedactedOutput` over `Display`, `Debug`, or `Serialize` because it requires a redacted representation or an explicit non-sensitive wrapper.
 
@@ -95,8 +99,9 @@ where
 {
     match value.to_redacted_output() {
         RedactedOutput::Text(text) => sink.write_text(key, &text),
-        #[cfg(feature = "json")]
         RedactedOutput::Json(json) => sink.write_json(key, &json),
+        // RedactedOutput is #[non_exhaustive]; never fall back to raw output here.
+        other => sink.write_text(key, &format!("{other:?}")),
     }
 }
 ```
@@ -108,7 +113,7 @@ write_safe_field(&mut sink, "user_id", user_id.not_sensitive_display());
 write_safe_field(&mut sink, "payload", payload.redacted_json());
 ```
 
-Reject raw strings at custom sink boundaries. Raw strings do not implement `ToRedactedOutput`; they only pass through the lower-level `RedactableWithFormatter` path used inside redacted display templates. If a string is safe for a custom sink, require `.not_sensitive_display()`, `.not_sensitive_debug()`, `.not_sensitive_json()`, or a project wrapper with the same explicit meaning.
+Reject raw strings at custom sink boundaries. Raw strings implement neither `ToRedactedOutput` nor `Redactable` (0.9+), so `.redacted_output()`, `.redacted_json()`, and `.slog_redacted_json()` do not even exist on them; they only pass through the lower-level `RedactableWithFormatter` path used inside redacted display templates. If a string is safe for a custom sink, require `.not_sensitive_display()`, `.not_sensitive_debug()`, `.not_sensitive_json()`, or a project wrapper with the same explicit meaning.
 
 ## Non-Sensitive Values
 
@@ -136,7 +141,7 @@ For slog, use `.slog_redacted_json()` to redact first and then serialize. Treat 
 
 ## Test-Mode Debug
 
-Remember that `Sensitive` and `SensitiveDisplay` generate unredacted `Debug` in tests and with the `testing` feature. Do not write raw debug output from tests to shared logs or committed fixtures.
+Remember that `Sensitive` and `SensitiveDisplay` generate unredacted `Debug` in your crate's `cfg(test)` builds and when **redactable's own** `testing` feature is enabled (since 0.8, a consumer feature that merely shares the name `testing` has no effect). Do not write raw debug output from tests to shared logs or committed fixtures.
 
 Expect generated `Debug` to be redacted in production builds.
 

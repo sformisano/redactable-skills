@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Derive Selection"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Derive Selection
 
@@ -57,9 +57,9 @@ struct PaymentEvent {
 
 Expect these generated APIs:
 
-- `.redact()` returns the same type with sensitive leaves redacted
-- `Debug` is redacted in normal builds
-- `Debug` is unredacted in `cfg(test)` or with the `testing` feature
+- `Redactable`, so `.redact()` returns the same type with sensitive leaves redacted, and the type is certified for `.redacted_output()` / `.redacted_json()` / `.slog_redacted_json()`
+- `Debug` is redacted by default
+- `Debug` is unredacted in your crate's `cfg(test)` builds or when **redactable's own** `testing` feature is enabled (a consumer feature that merely happens to be named `testing` has no effect since 0.8)
 - `slog::Value` and `SlogRedacted` exist when the `slog` feature is enabled
 - `TracingRedacted` exists when the `tracing` feature is enabled
 
@@ -82,7 +82,7 @@ enum AuthError {
 }
 ```
 
-Take the redacted display template from `#[error("...")]` or from a doc comment.
+Take the redacted display template from `#[error("...")]` or from a doc comment. Annotate the variant's *fields*; `#[sensitive(...)]` on the variant itself is a compile error.
 
 Expect these generated APIs:
 
@@ -140,6 +140,7 @@ Expect `NotSensitiveDisplay` to work in both paths:
 
 - it passes through unchanged in `Sensitive` containers
 - it formats through `Display` in `SensitiveDisplay` templates
+- it generates `ToRedactedOutput` (the `Display` text), so it stays certified for `slog_redacted_display()` and custom `ToRedactedOutput` sinks
 
 Add `#[derive(Debug)]` yourself when `Debug` is needed.
 
@@ -156,7 +157,7 @@ Use `#[sensitive(dual)]` when a type needs both `.redact()` and `.redacted_displ
 struct EmailAddress(#[sensitive(redactable::Email)] String);
 ```
 
-Add `#[sensitive(dual)]` whenever both derives are present on the same type. `Sensitive` handles the structured path, and `SensitiveDisplay` handles the display path.
+Add `#[sensitive(dual)]` whenever both derives are present on the same type. `Sensitive` handles the structured path, and `SensitiveDisplay` handles the display path. Since 0.8, `dual` with only one of the two derives is a compile error naming the missing counterpart, so a forgotten pairing cannot silently drop the redacted `Debug` or logging impls.
 
 Do not derive both without `#[sensitive(dual)]`.
 

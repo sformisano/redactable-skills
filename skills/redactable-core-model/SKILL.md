@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Core Model"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Core Model
 
@@ -22,6 +22,10 @@ Treat redaction as opt-in. Assume fields remain visible unless one of these **cr
 - the field is `serde_json::Value`, which is treated as opaque and fully redacted by default when the `json` feature is enabled
 
 **Authoring guidance (should-do):** If a plain `String` field contains a name, email, token, address, account number, or user-provided text, annotate it with `#[sensitive(Policy)]`. A plain `String` in a `Sensitive` struct is not automatically secret.
+
+**`Redactable` is the certification (0.9+).** Only types with declared redaction implement it: the derives, `SensitiveValue` / `NotSensitiveValue`, `serde_json::Value`, and std containers of those. A bare `String` or scalar has no `.redact()` and cannot be certified as redacted output — those calls are compile errors that point you at the derives. If the compiler says a value has no declared redaction behavior, derive or wrap; do not hand-implement the hidden machinery traits.
+
+**Annotate fields, not enum variants.** `#[sensitive(...)]` / `#[not_sensitive]` on an enum *variant* is a compile error (before 0.8 it was silently ignored — code migrated from older versions may carry this bug).
 
 ## Two Output Paths
 
@@ -92,15 +96,16 @@ fn log_login(user: &User) {
 }
 
 // CORRECT — use the redacted form at the logging boundary
+// (.redact() consumes the value, so clone when starting from a reference)
 fn log_login(user: &User) {
-    let safe = user.redact();
+    let safe = user.clone().redact();
     tracing::info!("Login attempt: {}", safe.email);
 }
 ```
 
 **Must-do:** Never pass a sensitive field directly to `format!`, `println!`, `dbg!`, `to_string()`, or a logging macro. Always call `.redact()` or `.redacted_display()` first.
 
-If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`.
+If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`. Using `dual` with only one of the two derives is a compile error naming the missing counterpart.
 
 ## Template
 

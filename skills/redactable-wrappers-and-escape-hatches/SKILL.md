@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Wrappers And Escape Hatches"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Wrappers And Escape Hatches
 
@@ -127,23 +127,27 @@ Do not use `.not_sensitive_debug()` on request bodies, error contexts, metadata 
 
 ## Redacted Output Wrappers
 
-Use these wrappers when the value has redactable support and the sink wants one already-redacted output value:
+Use these wrappers when the value has declared redaction support and the sink wants one already-redacted output value. They require `Redactable` (0.9+), which only derived or wrapped types implement — calling them on a raw `String` is a compile error.
 
-| Wrapper | Meaning |
-|---|---|
-| `.redacted_output()` | redact and emit text using redacted `Debug` |
-| `.redacted_json()` | redact and then serialize to JSON |
-| `.redacted_display()` | emit redacted text for `SensitiveDisplay` types |
+| Wrapper | Meaning | Sinks |
+|---|---|---|
+| `.redacted_output()` | redact and emit text using redacted `Debug` | slog fields, `ToRedactedOutput` sinks |
+| `.redacted_json()` | redact and then serialize to JSON | slog fields, `ToRedactedOutput` sinks |
+| `.redacted_display()` | emit redacted text for `SensitiveDisplay` types | any `Display` context, including tracing `%` |
 
 ```rust
+// tracing: redacted display text, or Debug of the redacted value.
 tracing::info!(
     account = %account.redacted_display(),
-    payload = %event.redacted_json(),
+    payload = ?event.clone().redact(),
     "publishing safe telemetry"
 );
+
+// slog: the JSON wrappers implement slog::Value directly.
+slog::info!(logger, "publishing safe telemetry"; "payload" => &event.redacted_json());
 ```
 
-Prefer `.redacted_json()` for structured telemetry when the type implements `Serialize`. Do not substitute `.not_sensitive_json()` unless the raw JSON has been audited as non-sensitive.
+The JSON wrappers (`RedactedOutputRef`, `RedactedJsonRef`) implement `slog::Value` and `ToRedactedOutput`, not `Display` — they cannot be used with `%` in tracing macros. Prefer `.redacted_json()` for structured telemetry when the type implements `Serialize`. Do not substitute `.not_sensitive_json()` unless the raw JSON has been audited as non-sensitive.
 
 ## Serialization Is Raw Unless You Redact First
 

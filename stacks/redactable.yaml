@@ -3,7 +3,7 @@ name: Redactable
 description: Generic Rust redactable crate guidance for authoring, logging, wrappers, field policies, and review.
 author: Salvatore Formisano
 created_at: "2026-04-29T15:18:46Z"
-updated_at: "2026-05-17T20:26:33Z"
+updated_at: "2026-06-10T17:30:00Z"
 ---
 skills:
   - redactable-core-model

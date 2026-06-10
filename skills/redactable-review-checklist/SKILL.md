@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Review Checklist"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Review Checklist
 
@@ -22,7 +22,8 @@ Check every type that can be logged, traced, displayed, serialized for diagnosti
 - Verify that sensitive text/error types needing ordinary Rust `Display` or `Error` also use `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive.
 - Confirm that `NotSensitive` is derived only on truly public structured types where every field is safe.
 - Confirm that `NotSensitiveDisplay` is derived only when the `Display` output is safe.
-- Confirm that newtypes needing both paths use `#[sensitive(dual)]`.
+- Confirm that newtypes needing both paths use `#[sensitive(dual)]` (since 0.8, `dual` with only one derive fails to compile, so a compiling pair is coordinated).
+- Confirm that enum annotations sit on variant *fields*; variant-level `#[sensitive(...)]` is a compile error since 0.8 - and code written against older versions may carry silently-ignored variant annotations that never redacted anything.
 
 Red flag: `NotSensitive` or `NotSensitiveDisplay` on a type with names, emails, addresses, tokens, raw payloads, customer data, account data, financial data, or user input.
 
@@ -96,7 +97,7 @@ These are not always wrong, but they need proof that no sensitive value reaches 
 
 Prefer project logging macros or helpers that require `SlogRedacted`, `TracingRedacted`, or `ToRedactedOutput`.
 
-For custom `ToRedactedOutput` sinks, raw `String` must not compile. Callers should pass a `SensitiveDisplay` value, `SensitiveValue`, `.redacted_output()`, `.redacted_json()`, or an explicit `.not_sensitive_*()` wrapper.
+For custom `ToRedactedOutput` sinks, raw `String` must not compile. Callers should pass a `SensitiveDisplay` value, `SensitiveValue`, `.redacted_output()`, `.redacted_json()`, or an explicit `.not_sensitive_*()` wrapper. Since 0.9 the compiler enforces most of this: raw leaves implement neither `Redactable` nor `ToRedactedOutput`, so the redacted-output methods do not exist on them. Review effort goes to the escape hatches (`.not_sensitive_*()`, `#[not_sensitive]`, `.expose()`), not to hunting raw-value certification.
 
 ## Serialization Checks
 
@@ -119,8 +120,10 @@ let json = serde_json::to_string(&user_profile)?;
 tracing::info!(payload = %json, "processed request");
 
 // CORRECT — redact before serializing for diagnostics
-let redacted = user_profile.redacted_json();
+let redacted = serde_json::to_string(&user_profile.clone().redact())?;
 tracing::info!(payload = %redacted, "processed request");
+// (.redacted_json() yields a slog-oriented wrapper without Display;
+// use it with slog fields or ToRedactedOutput sinks, not tracing's %.)
 ```
 
 ## Error Message Checks
@@ -179,13 +182,17 @@ fn redact_replaces_sensitive_fields() {
         account_id: 42,
     };
     let redacted = profile.redact();
-    assert_eq!(redacted.email, "[REDACTED]");
-    assert_eq!(redacted.display_name, "[REDACTED]");
+    // Assert the policy-shaped output, not a generic placeholder:
+    // Email keeps the first 2 local chars and the domain; Pii keeps the last 2.
+    assert_eq!(redacted.email, "al***@example.com");
+    assert_eq!(redacted.display_name, "***ce");
     assert_eq!(redacted.account_id, 42); // operational field preserved
 }
 ```
 
-Do not rely only on generated `Debug` in tests. Test builds intentionally show raw values for `Sensitive` and `SensitiveDisplay`.
+Also cover the fail-closed edge when short values are possible: keep-based policies fully mask values at or below their keep window (0.8+), so a 2-character `display_name` under `Pii` becomes `**`, not the raw name.
+
+Do not rely only on generated `Debug` in tests: your crate's `cfg(test)` builds (and redactable's own `testing` feature) intentionally show raw values for `Sensitive` and `SensitiveDisplay`. Asserting production-redacted `Debug` requires the type to live in a non-test fixture crate.
 
 ## Review Finding Template
 

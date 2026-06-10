@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Field Policies"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-05-17T11:10:10Z"
+  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
 ---
 # Redactable Field Policies
 
@@ -60,7 +60,10 @@ Do not write `#[sensitive(Pii)] customer: Customer`. That treats the whole field
 | `Pii` | names, addresses, general personal data | keeps last 2 characters |
 | `PhoneNumber` | phone numbers | keeps last 4 characters |
 | `IpAddress` | IP strings | keeps last 4 characters |
+| `IpAddress` on `IpAddr`/`SocketAddr` (`ip-address` feature) | std::net IP fields | zeroes all but the last octet (IPv4) or segment (IPv6); IPv4-mapped IPv6 uses the IPv4 rule; only `IpAddress` is accepted on IP fields |
 | `BlockchainAddress` | wallet addresses | keeps last 6 characters |
+
+**Short values are fully masked (0.8+).** Keep-based policies fail closed: when the value is at or below the keep window (a 4-character token under `Token`, a 2-character name under `Pii`), every character is masked instead of revealed. `Email` applies the same rule to short local parts, and empty strings redact to `[REDACTED]`. Do not write tests expecting short values to pass through unchanged.
 
 Use `Secret` when partial visibility is not useful. Use a more specific policy only when the visible suffix or email domain has a clear diagnostic purpose.
 
@@ -146,7 +149,7 @@ impl redactable::RedactionPolicy for InternalId {
 }
 ```
 
-Prefer stricter redaction over clever partial visibility. Keep visible output only when it has a clear debugging purpose.
+Prefer stricter redaction over clever partial visibility. Keep visible output only when it has a clear debugging purpose. Custom keep-based policies inherit the fail-closed rule: values at or below the keep window are fully masked.
 
 ## Field Template
 
@@ -182,6 +185,7 @@ Avoid these patterns:
 - Using `#[sensitive(redactable::Secret)]` on scalar fields, because scalar `Secret` must be a bare imported identifier.
 - Using qualified primitive paths such as `std::primitive::u32`, because the derive macro does not recognize them as scalars.
 - Using `&str` for structural redaction, because `Sensitive` does not support it.
+- Annotating an enum *variant* instead of its fields, because variant-level `#[sensitive(...)]` / `#[not_sensitive]` is a compile error (and was silently ignored before 0.8).
 
 ## Cross-References
 

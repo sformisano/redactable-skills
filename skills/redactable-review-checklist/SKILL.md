@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Review Checklist"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Review Checklist
 
@@ -59,6 +59,7 @@ For each `Sensitive` or `SensitiveDisplay` type:
 - Verify that sensitive `String` and `Cow<str>` fields have `#[sensitive(Policy)]`.
 - Verify that sensitive scalar fields import `Secret` and use bare `#[sensitive(Secret)]`.
 - Confirm that nested types deriving `Sensitive` are unannotated so traversal can walk them.
+- Confirm that 0.10+ containers are treated correctly: `VecDeque`, arrays, tuples up to four elements, `Mutex`, and `RwLock` delegate to certified contents; raw leaves inside those containers are still not certified.
 - Confirm that `serde_json::Value` fields are understood to fully redact.
 - Confirm that `HashMap` and `BTreeMap` keys do not contain sensitive data.
 - Confirm that sets are not used where redaction could collapse distinct values and break count-sensitive behavior.
@@ -96,6 +97,8 @@ serde_json::to_string
 These are not always wrong, but they need proof that no sensitive value reaches them.
 
 Prefer project logging macros or helpers that require `SlogRedacted`, `TracingRedacted`, or `ToRedactedOutput`.
+
+For structural `Sensitive` values in tracing fields, suggest `use redactable::tracing::TracingRedactedDebugExt;` and `.tracing_redacted_debug()`. The helper redacts a clone before recording a `Debug` field, and raw `String` does not satisfy its bounds.
 
 For custom `ToRedactedOutput` sinks, raw `String` must not compile. Callers should pass a `SensitiveDisplay` value, `SensitiveValue`, `.redacted_output()`, `.redacted_json()`, or an explicit `.not_sensitive_*()` wrapper. Since 0.9 the compiler enforces most of this: raw leaves implement neither `Redactable` nor `ToRedactedOutput`, so the redacted-output methods do not exist on them. Review effort goes to the escape hatches (`.not_sensitive_*()`, `#[not_sensitive]`, `.expose()`), not to hunting raw-value certification.
 
@@ -168,7 +171,9 @@ Useful tests:
 - `.redact()` changes sensitive fields and preserves operational fields
 - `.redacted_display()` redacts template fields
 - nested structs are walked without outer annotations
+- 0.10+ containers (`VecDeque`, arrays, tuples up to four elements, `Mutex`, `RwLock`) delegate only when their contents are certified
 - `serde_json::Value` payloads redact to `[REDACTED]`
+- tracing `.tracing_redacted_debug()` captures redacted text and excludes raw sensitive bytes
 - logging helpers reject raw `String` or accept only redacted wrappers when compile-fail tests are available
 
 ### Template: redaction test

@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Wrappers And Escape Hatches"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Wrappers And Escape Hatches
 
@@ -26,7 +26,7 @@ struct AuthConfig {
 }
 ```
 
-Rely on `Debug` and `.redacted()` for redacted output. Call `.expose()` only when crossing a boundary that must consume raw data, such as an outbound API request, database write, queue message, or crypto/signing call. Before adding `.expose()`, verify the value is not formatted, logged, included in errors, or passed to telemetry on the same path.
+Rely on `Debug` and `.redacted()` for redacted output. With the `json` feature, `SensitiveValue<T, P>` serializes and deserializes the raw inner value; that mirrors source-of-truth data, not diagnostic redaction. Call `.expose()` only when crossing a boundary that must consume raw data, such as an outbound API request, database write, queue message, or crypto/signing call. Before adding `.expose()`, verify the value is not formatted, logged, included in errors, or passed to telemetry on the same path.
 
 Prefer `SensitiveValue<T, P>` when accidental raw formatting is a real risk, when the value type comes from another crate, or when a `Sensitive` container needs a leaf with an explicit policy.
 
@@ -70,7 +70,7 @@ struct Config {
 }
 ```
 
-Do not use it around a type that contains sensitive fields. It is a passthrough and does not walk nested values.
+Do not use it around a type that contains sensitive fields. It is a passthrough and does not walk nested values. With the `json` feature, `NotSensitiveValue<T>` serializes and deserializes the raw inner value.
 
 For local non-sensitive types, prefer `#[derive(NotSensitive)]` or `#[derive(NotSensitiveDisplay)]`.
 
@@ -131,15 +131,18 @@ Use these wrappers when the value has declared redaction support and the sink wa
 
 | Wrapper | Meaning | Sinks |
 |---|---|---|
+| `.tracing_redacted_debug()` | redact a clone and emit a `Debug` field | tracing fields for structural `Sensitive` values |
 | `.redacted_output()` | redact and emit text using redacted `Debug` | slog fields, `ToRedactedOutput` sinks |
 | `.redacted_json()` | redact and then serialize to JSON | slog fields, `ToRedactedOutput` sinks |
 | `.redacted_display()` | emit redacted text for `SensitiveDisplay` types | any `Display` context, including tracing `%` |
 
 ```rust
+use redactable::tracing::TracingRedactedDebugExt;
+
 // tracing: redacted display text, or Debug of the redacted value.
 tracing::info!(
     account = %account.redacted_display(),
-    payload = ?event.clone().redact(),
+    payload = event.tracing_redacted_debug(),
     "publishing safe telemetry"
 );
 

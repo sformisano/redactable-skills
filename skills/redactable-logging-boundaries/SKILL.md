@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Logging Boundaries"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Logging Boundaries
 
@@ -39,11 +39,15 @@ Replace raw sink calls with wrapper-based calls before values reach the sink.
 // Bad: raw value reaches the tracing sink.
 tracing::info!(user = ?user, "created account");
 
-// Good: redact first, then log the redacted value.
-tracing::info!(user = ?user.clone().redact(), "created account");
+// Good: redact a clone before the value reaches the tracing subscriber.
+use redactable::tracing::TracingRedactedDebugExt;
+
+tracing::info!(user = user.tracing_redacted_debug(), "created account");
 ```
 
-`.tracing_redacted()` requires `ToRedactedOutput`, which `SensitiveDisplay` / `NotSensitiveDisplay` types, `SensitiveValue`, and the explicit wrappers implement — structural `Sensitive` types do not. For a `Sensitive` type, log `?value.clone().redact()` or use `.tracing_redacted_valuable()` with the `tracing-valuable` feature.
+`.tracing_redacted_debug()` is the plain tracing path for structural `Sensitive` values. It requires `use redactable::tracing::TracingRedactedDebugExt;` and a value that implements `Redactable + Clone + Debug`; raw `String` does not compile. Use `?value.clone().redact()` only as the no-import fallback.
+
+`.tracing_redacted()` requires `ToRedactedOutput`, which `SensitiveDisplay` / `NotSensitiveDisplay` types, `SensitiveValue`, and the explicit wrappers implement — structural `Sensitive` types do not. Use `.tracing_redacted_valuable()` only when the subscriber supports `valuable` and the crate is compiled with the required unstable tracing cfg.
 
 ## Slog
 
@@ -69,9 +73,20 @@ If `redactable-derive` cannot find a top-level `slog` crate, set `REDACTABLE_SLO
 
 Enable the `tracing` feature for tracing marker support.
 
+Use `.tracing_redacted_debug()` for structural `Sensitive` values when a redacted `Debug` field is enough.
+
 Use `.tracing_redacted()` for display-string output on types that implement `ToRedactedOutput` (`SensitiveDisplay` / `NotSensitiveDisplay` types, `SensitiveValue`, explicit wrappers).
 
-Use `.tracing_redacted_valuable()` when the `tracing-valuable` feature is enabled and the subscriber supports `valuable`. This keeps structured data shape after redaction.
+Use `.tracing_redacted_valuable()` when the `tracing-valuable` feature is enabled, `RUSTFLAGS="--cfg tracing_unstable"` is set, and the subscriber supports `valuable`. Bind the wrapper first, then pass a reference through tracing's valuable adapter:
+
+```rust
+use redactable::tracing::TracingValuableExt;
+
+let redacted = event.tracing_redacted_valuable();
+tracing::info!(event = tracing::field::valuable(&redacted));
+```
+
+Do not construct `RedactedValuable` directly; construction goes through `.tracing_redacted_valuable()` so the value is redacted before it can be recorded.
 
 Do not pass raw values directly to tracing fields unless the project has its own wrapper that enforces redactable safety.
 

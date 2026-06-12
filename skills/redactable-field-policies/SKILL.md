@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Field Policies"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Field Policies
 
@@ -60,7 +60,7 @@ Do not write `#[sensitive(Pii)] customer: Customer`. That treats the whole field
 | `Pii` | names, addresses, general personal data | keeps last 2 characters |
 | `PhoneNumber` | phone numbers | keeps last 4 characters |
 | `IpAddress` | IP strings | keeps last 4 characters |
-| `IpAddress` on `IpAddr`/`SocketAddr` (`ip-address` feature) | std::net IP fields | zeroes all but the last octet (IPv4) or segment (IPv6); IPv4-mapped IPv6 uses the IPv4 rule; only `IpAddress` is accepted on IP fields |
+| `IpAddress` on bare `IpAddr`/`SocketAddr` (`ip-address` feature) | std::net IP fields | zeroes all but the last octet (IPv4) or segment (IPv6); IPv4-mapped IPv6 uses the IPv4 rule; only `IpAddress` is accepted on bare IP fields |
 | `BlockchainAddress` | wallet addresses | keeps last 6 characters |
 
 **Short values are fully masked (0.8+).** Keep-based policies fail closed: when the value is at or below the keep window (a 4-character token under `Token`, a 2-character name under `Pii`), every character is masked instead of revealed. `Email` applies the same rule to short local parts, and empty strings redact to `[REDACTED]`. Do not write tests expecting short values to pass through unchanged.
@@ -99,22 +99,29 @@ Use bare primitive names like `u32`, `bool`, or `char`. Do not use qualified pri
 Apply `#[sensitive(Policy)]` to fields wrapped in these common container types when the contained leaves are sensitive:
 
 - `Option<String>`
-- `Vec<String>`
+- `Vec<String>` and `VecDeque<String>`
+- `[String; N]` arrays
 - `Box<String>`
 - `Arc<String>` and `Rc<String>` when clone bounds are met
 - `Result<T, E>`
 - maps and sets
-- nested combinations such as `Option<Vec<String>>`
+- nested combinations such as `Option<VecDeque<String>>`
 
 ```rust
 #[derive(Clone, redactable::Sensitive)]
 struct ContactList {
     #[sensitive(redactable::Email)]
     emails: Vec<String>,
+    #[sensitive(redactable::Email)]
+    backup_emails: std::collections::VecDeque<String>,
     #[sensitive(redactable::Secret)]
     recovery_codes: Option<Vec<String>>,
 }
 ```
+
+For containers of already-redactable values, leave the field unannotated and let traversal delegate to the contents. This includes `VecDeque<T>`, arrays, tuples up to four elements, `Mutex<T>`, and `RwLock<T>` when `T` is already `Redactable`.
+
+Do not annotate IP addresses through containers. `#[sensitive(redactable::IpAddress)]` applies to bare IP fields only; for container-wrapped IPs, wrap the inner value, such as `Option<redactable::SensitiveValue<std::net::IpAddr, redactable::IpAddress>>`.
 
 Use owned `String` or `Cow<str>` for structural redaction. Do not use `&str`; it is not supported for `Sensitive` structural redaction.
 
@@ -185,6 +192,7 @@ Avoid these patterns:
 - Using `#[sensitive(redactable::Secret)]` on scalar fields, because scalar `Secret` must be a bare imported identifier.
 - Using qualified primitive paths such as `std::primitive::u32`, because the derive macro does not recognize them as scalars.
 - Using `&str` for structural redaction, because `Sensitive` does not support it.
+- Using `#[sensitive(redactable::IpAddress)]` on `Option<IpAddr>`, `Vec<IpAddr>`, or another IP container; wrap each IP value in `SensitiveValue<_, IpAddress>` instead.
 - Annotating an enum *variant* instead of its fields, because variant-level `#[sensitive(...)]` / `#[not_sensitive]` is a compile error (and was silently ignored before 0.8).
 
 ## Cross-References

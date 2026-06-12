@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Core Model"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Core Model
 
@@ -23,7 +23,7 @@ Treat redaction as opt-in. Assume fields remain visible unless one of these **cr
 
 **Authoring guidance (should-do):** If a plain `String` field contains a name, email, token, address, account number, or user-provided text, annotate it with `#[sensitive(Policy)]`. A plain `String` in a `Sensitive` struct is not automatically secret.
 
-**`Redactable` is the certification (0.9+).** Only types with declared redaction implement it: the derives, `SensitiveValue` / `NotSensitiveValue`, `serde_json::Value`, and std containers of those. A bare `String` or scalar has no `.redact()` and cannot be certified as redacted output — those calls are compile errors that point you at the derives. If the compiler says a value has no declared redaction behavior, derive or wrap; do not hand-implement the hidden machinery traits.
+**`Redactable` is the certification (0.9+).** Only types with declared redaction implement it: the derives, `SensitiveValue` / `NotSensitiveValue`, `serde_json::Value`, and std containers of those. Container certification forwards only when the contents are also certified, including `VecDeque`, arrays, tuples up to four elements, `Mutex`, and `RwLock` in 0.10+. A bare `String` or scalar has no `.redact()` and cannot be certified as redacted output — those calls are compile errors that point you at the derives. If the compiler says a value has no declared redaction behavior, derive or wrap; do not hand-implement the hidden machinery traits.
 
 **Annotate fields, not enum variants.** `#[sensitive(...)]` / `#[not_sensitive]` on an enum *variant* is a compile error (before 0.8 it was silently ignored — code migrated from older versions may carry this bug).
 
@@ -65,7 +65,7 @@ Apply these rules when reasoning about `Sensitive` field traversal:
 
 - **[guarantee]** Do not annotate standard leaves (`String`, numbers, booleans, time values) that are not sensitive—the crate passes them through unchanged.
 - **[guarantee]** Do not annotate nested types that derive `Sensitive`—the crate applies their own field policies automatically.
-- **[guarantee]** Rely on `Option`, `Vec`, `Box`, `Arc`, `Rc`, `Result`, maps, sets, `Cell`, and `RefCell` to delegate to their contents—the crate handles this.
+- **[guarantee]** Rely on `Option`, `Vec`, `VecDeque`, arrays, tuples up to four elements, `Box`, `Arc`, `Rc`, `Result`, maps, sets, `Cell`, `RefCell`, `Mutex`, and `RwLock` to delegate to their contents—the crate handles this.
 - **[guarantee]** Ignore `PhantomData<T>`—the crate skips it and does not require `T` to implement redactable traits.
 - **[heuristic]** Assume nested `SensitiveDisplay` types will be redacted when referenced from `SensitiveDisplay` templates—verify the template actually interpolates them.
 
@@ -95,15 +95,15 @@ fn log_login(user: &User) {
     tracing::info!("user email: {}", user.email);
 }
 
-// CORRECT — use the redacted form at the logging boundary
-// (.redact() consumes the value, so clone when starting from a reference)
+// CORRECT — use the tracing helper for structural Sensitive values
+use redactable::tracing::TracingRedactedDebugExt;
+
 fn log_login(user: &User) {
-    let safe = user.clone().redact();
-    tracing::info!("Login attempt: {}", safe.email);
+    tracing::info!(user = user.tracing_redacted_debug(), "login attempt");
 }
 ```
 
-**Must-do:** Never pass a sensitive field directly to `format!`, `println!`, `dbg!`, `to_string()`, or a logging macro. Always call `.redact()` or `.redacted_display()` first.
+**Must-do:** Never pass a sensitive field directly to `format!`, `println!`, `dbg!`, `to_string()`, or a logging macro. Always call `.redact()`, `.redacted_display()`, or the tracing-specific `.tracing_redacted_debug()` helper first.
 
 If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`. Using `dual` with only one of the two derives is a compile error naming the missing counterpart.
 
@@ -165,6 +165,7 @@ When writing or reviewing code (must-do unless noted):
 - Every sensitive leaf **must** have `#[sensitive(Policy)]`.
 - Every use of `#[not_sensitive]` **must** be easy to justify.
 - Raw `format!`, `to_string()`, `println!`, `dbg!`, and direct logging APIs **must not** carry sensitive values.
+- Structural `Sensitive` values logged through tracing **must** use `.tracing_redacted_debug()` or an equivalent redacted wrapper; raw `String` values do not satisfy that helper's bounds.
 - Serialization is not redaction. If redacted JSON is needed, serialize the redacted form.
 
 ## Cross-References

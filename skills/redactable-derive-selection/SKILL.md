@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Derive Selection"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-10T17:30:00Z"
+  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
 ---
 # Redactable Derive Selection
 
@@ -61,7 +61,8 @@ Expect these generated APIs:
 - `Debug` is redacted by default
 - `Debug` is unredacted in your crate's `cfg(test)` builds or when **redactable's own** `testing` feature is enabled (a consumer feature that merely happens to be named `testing` has no effect since 0.8)
 - `slog::Value` and `SlogRedacted` exist when the `slog` feature is enabled
-- `TracingRedacted` exists when the `tracing` feature is enabled
+- `.tracing_redacted_debug()` works when the `tracing` feature is enabled and `TracingRedactedDebugExt` is imported
+- `.tracing_redacted_valuable()` works when `tracing-valuable` is enabled, the type also implements `valuable::Valuable`, and the crate is compiled with `RUSTFLAGS="--cfg tracing_unstable"`
 
 Require `Clone` for normal use because redaction consumes and returns the value.
 
@@ -89,6 +90,10 @@ Expect these generated APIs:
 - `RedactableWithFormatter`
 - `ToRedactedOutput`
 - redacted `Debug`, plus feature-gated `slog` and `tracing` support matching `Sensitive`
+
+Template parsing accepts normal fill/alignment with `*` or `$` fill characters, rejects hex-debug specifiers such as `{field:x?}` / `{field:X?}`, and formats `{field:?}` on unannotated walk-default fields through redacted-display semantics rather than ordinary `Debug`. Use `#[not_sensitive]` only when genuine raw `Debug` output is safe.
+
+Display formatting delegates through arrays, tuples up to four elements, `Mutex`, and `RwLock`. `RefCell` formatting emits `<borrowed>` while already borrowed, and `Mutex` / `RwLock` formatting emits `<locked>` under contention.
 
 Do not expect normal Rust `Display` or `Error`. Pair `SensitiveDisplay` with `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive when ordinary Rust formatting is required.
 
@@ -173,6 +178,8 @@ struct EmailAddress(#[sensitive(redactable::Email)] String);
 ```
 
 If the type also needs normal `Display`, add a normal display derive or manual impl. `SensitiveDisplay` only controls redacted display output.
+
+Generated enum `Debug` uses compact variant paths such as `Name::Variant`.
 
 ## Fixing Compile Errors
 

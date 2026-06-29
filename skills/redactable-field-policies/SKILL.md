@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Field Policies"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
+  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
 ---
 # Redactable Field Policies
 
@@ -47,7 +47,7 @@ struct Order {
 }
 ```
 
-Do not write `#[sensitive(Pii)] customer: Customer`. That treats the whole field as one leaf and bypasses nested policies.
+Do not write `#[sensitive(Pii)] customer: Customer`. Current redactable usually rejects that with a `PolicyApplicable` trait-bound error because `Customer` is not a policy-applicable string leaf or wrapper. If a custom type made the annotation compile, it would apply one outer policy instead of running the nested field policies.
 
 ## Built-In Policies
 
@@ -135,7 +135,7 @@ Expect sets to redact each element and collect the results back into a set. If t
 
 ## JSON Values
 
-With the `json` feature, treat `serde_json::Value` as opaque. Expect it to redact fully to `Value::String("[REDACTED]")`.
+With `redactable/json`, treat `serde_json::Value` as opaque. Expect it to redact fully to `Value::String("[REDACTED]")`.
 
 Expect the same full redaction when the field is unannotated inside a `Sensitive` type. That is intentional because arbitrary JSON may contain anything.
 
@@ -186,7 +186,7 @@ Replace each placeholder policy with the narrowest built-in or custom policy tha
 
 Avoid these patterns:
 
-- Annotating a nested `Sensitive` type, such as `#[sensitive(Pii)] customer: Customer`, because it bypasses nested policies.
+- Annotating a nested `Sensitive` type, such as `#[sensitive(Pii)] customer: Customer`, because it usually fails through `PolicyApplicable`; leave it unannotated so its own field policies run.
 - Leaving sensitive string leaves unannotated, because `String` and `Cow<str>` pass through unchanged by default.
 - Putting sensitive data in map keys, because keys are not redacted.
 - Using `#[sensitive(redactable::Secret)]` on scalar fields, because scalar `Secret` must be a bare imported identifier.

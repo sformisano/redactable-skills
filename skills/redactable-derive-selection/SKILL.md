@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Derive Selection"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
+  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
 ---
 # Redactable Derive Selection
 
@@ -21,10 +21,10 @@ Answer these questions before choosing a derive:
 
 | Situation | Use |
 |---|---|
-| Type contains sensitive data and should remain structured | `#[derive(Clone, Sensitive)]` |
+| Type contains sensitive data and should remain structured | `#[derive(Sensitive)]`; add `Clone` when call sites need it |
 | Type contains sensitive data and formats as text | `#[derive(SensitiveDisplay)]`, plus normal display/error derive when needed |
-| Type contains no sensitive data but must work in `Sensitive` containers | `#[derive(Clone, NotSensitive)]` |
-| Type contains no sensitive data and already has `Display` | `#[derive(Clone, NotSensitiveDisplay)]` |
+| Type contains no sensitive data but must work in `Sensitive` containers | `#[derive(NotSensitive)]`; add other derives when call sites need them |
+| Type contains no sensitive data and already has `Display` | `#[derive(NotSensitiveDisplay)]`; add other derives when call sites need them |
 | Newtype needs both structured traversal and redacted display | derive both with `#[sensitive(dual)]` |
 
 Use this selection template for each type:
@@ -57,6 +57,7 @@ struct PaymentEvent {
 
 Expect these generated APIs:
 
+- `RedactableWithMapper` for structural traversal
 - `Redactable`, so `.redact()` returns the same type with sensitive leaves redacted, and the type is certified for `.redacted_output()` / `.redacted_json()` / `.slog_redacted_json()`
 - `Debug` is redacted by default
 - `Debug` is unredacted in your crate's `cfg(test)` builds or when **redactable's own** `testing` feature is enabled (a consumer feature that merely happens to be named `testing` has no effect since 0.8)
@@ -64,7 +65,7 @@ Expect these generated APIs:
 - `.tracing_redacted_debug()` works when the `tracing` feature is enabled and `TracingRedactedDebugExt` is imported
 - `.tracing_redacted_valuable()` works when `tracing-valuable` is enabled, the type also implements `valuable::Valuable`, and the crate is compiled with `RUSTFLAGS="--cfg tracing_unstable"`
 
-Require `Clone` for normal use because redaction consumes and returns the value.
+Core `.redact(self)` consumes the value and does not require `Clone`. Add `Clone` when callers need to keep the original, such as `value.clone().redact()`, or when using helper paths that redact from `&self`, including `.redacted_output()`, `.redacted_json()`, `.slog_redacted_json()`, `.tracing_redacted_debug()`, and some logging integrations.
 
 Avoid deriving `Sensitive` only because a type appears in a display template. Use `SensitiveDisplay` when the redacted contract is text output.
 
@@ -97,6 +98,8 @@ Display formatting delegates through arrays, tuples up to four elements, `Mutex`
 
 Do not expect normal Rust `Display` or `Error`. Pair `SensitiveDisplay` with `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive when ordinary Rust formatting is required.
 
+Do not expect `RedactableWithMapper` or `Redactable`. `SensitiveDisplay` is display-side and implements `ToRedactedOutput`, not structural `.redact()`.
+
 Do not use `SensitiveDisplay` when the type must be traversed as a structured field in a `Sensitive` container. If a display newtype also needs structural traversal, derive both with `#[sensitive(dual)]`.
 
 ## `NotSensitive`
@@ -111,6 +114,8 @@ struct RetryConfig {
 ```
 
 Do not use `NotSensitive` just to silence a compiler error.
+
+Expect `NotSensitive` to implement `RedactableWithMapper` and `Redactable` as no-op structural passthroughs. Add `Debug`, `Clone`, or `Serialize` separately when the surrounding code needs those traits.
 
 ```rust
 // Wrong: `email` is user data and needs a redaction policy.
@@ -144,6 +149,7 @@ enum RetryDecision {
 Expect `NotSensitiveDisplay` to work in both paths:
 
 - it passes through unchanged in `Sensitive` containers
+- it implements `Redactable` as an explicit non-sensitive structural declaration
 - it formats through `Display` in `SensitiveDisplay` templates
 - it generates `ToRedactedOutput` (the `Display` text), so it stays certified for `slog_redacted_display()` and custom `ToRedactedOutput` sinks
 
@@ -162,9 +168,11 @@ Use `#[sensitive(dual)]` when a type needs both `.redact()` and `.redacted_displ
 struct EmailAddress(#[sensitive(redactable::Email)] String);
 ```
 
-Add `#[sensitive(dual)]` whenever both derives are present on the same type. `Sensitive` handles the structured path, and `SensitiveDisplay` handles the display path. Since 0.8, `dual` with only one of the two derives is a compile error naming the missing counterpart, so a forgotten pairing cannot silently drop the redacted `Debug` or logging impls.
+Add `#[sensitive(dual)]` whenever both derives are present on the same type. `Sensitive` handles the structured path, and `SensitiveDisplay` handles the display path. Since 0.8, `dual` with only one of the two derives is a compile error for non-generic types, naming the missing counterpart so a forgotten pairing cannot silently drop the redacted `Debug` or logging impls.
 
 Do not derive both without `#[sensitive(dual)]`.
+
+Generic dual types do not currently get the same missing-pair guard, so keep both derives together by convention and add compile or behavior tests that exercise both `.redact()` and `.redacted_display()`.
 
 ```rust
 // Wrong: the generated implementations conflict.

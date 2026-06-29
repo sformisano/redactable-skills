@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Review Checklist"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
+  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
 ---
 # Redactable Review Checklist
 
@@ -22,12 +22,15 @@ Check every type that can be logged, traced, displayed, serialized for diagnosti
 - Verify that sensitive text/error types needing ordinary Rust `Display` or `Error` also use `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive.
 - Confirm that `NotSensitive` is derived only on truly public structured types where every field is safe.
 - Confirm that `NotSensitiveDisplay` is derived only when the `Display` output is safe.
-- Confirm that newtypes needing both paths use `#[sensitive(dual)]` (since 0.8, `dual` with only one derive fails to compile, so a compiling pair is coordinated).
+- Confirm that newtypes needing both paths use `#[sensitive(dual)]` (since 0.8, `dual` with only one derive fails to compile for non-generic types, so a compiling non-generic pair is coordinated).
+- For generic dual types, confirm tests or local conventions keep `Sensitive` and `SensitiveDisplay` paired; redactable's missing-pair compile guard currently covers non-generic types only.
 - Confirm that enum annotations sit on variant *fields*; variant-level `#[sensitive(...)]` is a compile error since 0.8 - and code written against older versions may carry silently-ignored variant annotations that never redacted anything.
 
 Red flag: `NotSensitive` or `NotSensitiveDisplay` on a type with names, emails, addresses, tokens, raw payloads, customer data, account data, financial data, or user input.
 
 Red flag: assuming `#[derive(SensitiveDisplay)]` alone implements normal `Display` or `Error`. It generates redacted display traits and `Debug`; normal Rust formatting still needs the normal project derive or impl.
+
+Red flag: assuming `#[derive(SensitiveDisplay)]` satisfies structural `Redactable` bounds. It implements `ToRedactedOutput`; derive `Sensitive` as well with `#[sensitive(dual)]` when the same type needs `.redact()`.
 
 ### Template: correct struct derives
 
@@ -100,7 +103,7 @@ Prefer project logging macros or helpers that require `SlogRedacted`, `TracingRe
 
 For structural `Sensitive` values in tracing fields, suggest `use redactable::tracing::TracingRedactedDebugExt;` and `.tracing_redacted_debug()`. The helper redacts a clone before recording a `Debug` field, and raw `String` does not satisfy its bounds.
 
-For custom `ToRedactedOutput` sinks, raw `String` must not compile. Callers should pass a `SensitiveDisplay` value, `SensitiveValue`, `.redacted_output()`, `.redacted_json()`, or an explicit `.not_sensitive_*()` wrapper. Since 0.9 the compiler enforces most of this: raw leaves implement neither `Redactable` nor `ToRedactedOutput`, so the redacted-output methods do not exist on them. Review effort goes to the escape hatches (`.not_sensitive_*()`, `#[not_sensitive]`, `.expose()`), not to hunting raw-value certification.
+For custom `ToRedactedOutput` sinks, raw `String` must not compile. Callers should pass a `SensitiveDisplay` value, `SensitiveValue`, `.redacted_output()`, `.redacted_json()` when `redactable/json` is enabled, or an explicit `.not_sensitive_*()` wrapper. Since 0.9 the compiler enforces most of this: raw leaves implement neither `Redactable` nor `ToRedactedOutput`, so the redacted-output methods do not exist on them. Review effort goes to the escape hatches (`.not_sensitive_*()`, `#[not_sensitive]`, `.expose()`), not to hunting raw-value certification.
 
 ## Serialization Checks
 
@@ -113,7 +116,7 @@ Check for:
 - sending raw diagnostic JSON to logs or traces
 - writing test fixtures that contain unredacted `Debug` output
 
-Use `.redacted_json()`, `.slog_redacted_json()`, or `.redact()` before diagnostic serialization.
+Use `.redacted_json()` or `.slog_redacted_json()` when `redactable/json` is enabled, or `.redact()` before diagnostic serialization.
 
 ### Anti-pattern: serializing without redaction
 

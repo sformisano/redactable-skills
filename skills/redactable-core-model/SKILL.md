@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Core Model"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
+  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
 ---
 # Redactable Core Model
 
@@ -19,7 +19,7 @@ Treat redaction as opt-in. Assume fields remain visible unless one of these **cr
 
 - the field is annotated with `#[sensitive(Policy)]`
 - the field's type implements the relevant redactable traversal trait for the output path
-- the field is `serde_json::Value`, which is treated as opaque and fully redacted by default when the `json` feature is enabled
+- the field is `serde_json::Value`, which is treated as opaque and fully redacted by default when `redactable/json` is enabled
 
 **Authoring guidance (should-do):** If a plain `String` field contains a name, email, token, address, account number, or user-provided text, annotate it with `#[sensitive(Policy)]`. A plain `String` in a `Sensitive` struct is not automatically secret.
 
@@ -57,7 +57,7 @@ enum LoginError {
 
 Call `.redacted_display()` to get redacted text. Use this path for errors, display messages, flat log lines, and anything with a human-readable template.
 
-`SensitiveDisplay` generates `RedactableWithFormatter`, `ToRedactedOutput`, `Debug`, and optional slog/tracing integrations. It does not generate normal Rust `Display` or `Error`. If callers need ordinary `Display` or `Error`, pair it with `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive.
+`SensitiveDisplay` generates `RedactableWithFormatter`, `ToRedactedOutput`, conditional `Debug`, and optional slog/tracing integrations for display output. It does not generate `RedactableWithMapper`, `Redactable`, normal Rust `Display`, or `Error`. If callers need ordinary `Display` or `Error`, pair it with `thiserror::Error`, `displaydoc::Display`, or the project's normal display/error derive.
 
 ## How Traversal Works
 
@@ -72,7 +72,7 @@ Apply these rules when reasoning about `Sensitive` field traversal:
 ### Anti-pattern: annotating a nested Sensitive type
 
 ```rust
-// WRONG — overrides the nested type's own field-level policies
+// WRONG — tries to apply one policy to the nested type instead of walking it
 #[derive(Clone, redactable::Sensitive)]
 struct Account {
     #[sensitive(redactable::Pii)]  // Do NOT do this
@@ -85,6 +85,8 @@ struct Account {
     user: User,  // unannotated; User's policies apply
 }
 ```
+
+Current redactable usually rejects the wrong pattern with a `PolicyApplicable` trait-bound error because nested `Sensitive` structs are not policy-applicable leaves. Do not treat that error as a reason to add a wrapper or escape hatch; remove the outer annotation so the nested type's own `Sensitive` traversal runs.
 
 ### Anti-pattern: leaking sensitive values through format!/logging
 
@@ -105,7 +107,7 @@ fn log_login(user: &User) {
 
 **Must-do:** Never pass a sensitive field directly to `format!`, `println!`, `dbg!`, `to_string()`, or a logging macro. Always call `.redact()`, `.redacted_display()`, or the tracing-specific `.tracing_redacted_debug()` helper first.
 
-If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`. Using `dual` with only one of the two derives is a compile error naming the missing counterpart.
+If one type needs both structural traversal and redacted display formatting, derive both with `#[sensitive(dual)]`. The missing-pair compile-time guard works for non-generic types; generic dual types need convention and tests because that guard does not currently fire the same way.
 
 ## Template
 
@@ -129,7 +131,7 @@ struct MyRecord {
     #[sensitive(redactable::Pii)]
     aliases: Vec<String>,
 
-    // opaque JSON — redacted by default with `json` feature
+    // opaque JSON — redacted by default with redactable/json
     metadata: serde_json::Value,
 }
 
@@ -161,7 +163,7 @@ Redact at the boundary where data leaves normal program flow:
 
 When writing or reviewing code (must-do unless noted):
 
-- Every type that may be logged **must** derive one of the redactable derives or be wrapped at the logging boundary.
+- Every type that may be logged **must** derive the appropriate redactable derive for its output path or be wrapped at the logging boundary.
 - Every sensitive leaf **must** have `#[sensitive(Policy)]`.
 - Every use of `#[not_sensitive]` **must** be easy to justify.
 - Raw `format!`, `to_string()`, `println!`, `dbg!`, and direct logging APIs **must not** carry sensitive values.

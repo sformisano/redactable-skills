@@ -5,7 +5,7 @@ metadata:
   skillcatalog/display_name: "Redactable Logging Boundaries"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-12T17:16:15Z"
+  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
 ---
 # Redactable Logging Boundaries
 
@@ -20,7 +20,7 @@ Good patterns:
 - `SlogRedacted` bounds for slog fields
 - `TracingRedacted` bounds for tracing adapters
 - `ToRedactedOutput` for custom logging pipelines that require explicit redacted or non-sensitive wrappers
-- `.redacted_json()` or `.slog_redacted_json()` before structured JSON logging
+- `.redacted_json()` or `.slog_redacted_json()` before structured JSON logging when `redactable/json` is enabled
 - `.redacted_display()` for display text
 - `.not_sensitive_display()` for known-safe operational values
 
@@ -97,9 +97,9 @@ Accept `ToRedactedOutput` at custom sink boundaries when callers must pass an ex
 Treat `RedactedOutput` as the only payload shape the sink may receive:
 
 - `Text(String)`
-- `Json(serde_json::Value)` when redactable's `json` feature is enabled
+- `Json(serde_json::Value)` when `redactable/json` is enabled
 
-`RedactedOutput` is `#[non_exhaustive]` (0.8+): matches in your crate must carry a wildcard arm. Do not gate match arms on `#[cfg(feature = "json")]` in your own crate — that checks *your* feature namespace, not redactable's.
+`RedactedOutput` is `#[non_exhaustive]` (0.8+): matches in your crate must carry a wildcard arm. `RedactedOutput::Json` exists only when `redactable/json` is enabled. Do not gate match arms on an unrelated `#[cfg(feature = "json")]` in your own crate — that checks your feature namespace, not redactable's.
 
 Prefer `ToRedactedOutput` over `Display`, `Debug`, or `Serialize` because it requires a redacted representation or an explicit non-sensitive wrapper.
 
@@ -114,18 +114,19 @@ where
 {
     match value.to_redacted_output() {
         RedactedOutput::Text(text) => sink.write_text(key, &text),
-        RedactedOutput::Json(json) => sink.write_json(key, &json),
         // RedactedOutput is #[non_exhaustive]; never fall back to raw output here.
-        other => sink.write_text(key, &format!("{other:?}")),
+        _ => sink.write_text(key, "[redacted structured output]"),
     }
 }
 ```
+
+Only match `RedactedOutput::Json` in crates that explicitly enable `redactable/json`. If the current crate gates that support, define the local feature so it maps to `redactable/json`, such as `redactable-json = ["redactable/json"]`, and gate the arm with that feature.
 
 Require callers to choose the wrapper before calling the boundary.
 
 ```rust
 write_safe_field(&mut sink, "user_id", user_id.not_sensitive_display());
-write_safe_field(&mut sink, "payload", payload.redacted_json());
+write_safe_field(&mut sink, "payload", payload.redacted_json()); // requires redactable/json
 ```
 
 Reject raw strings at custom sink boundaries. Raw strings implement neither `ToRedactedOutput` nor `Redactable` (0.9+), so `.redacted_output()`, `.redacted_json()`, and `.slog_redacted_json()` do not even exist on them; they only pass through the lower-level `RedactableWithFormatter` path used inside redacted display templates. If a string is safe for a custom sink, require `.not_sensitive_display()`, `.not_sensitive_debug()`, `.not_sensitive_json()`, or a project wrapper with the same explicit meaning.
@@ -138,13 +139,14 @@ Use:
 
 - `.not_sensitive_display()` for counts, booleans, status codes, enum names, and safe IDs
 - `.not_sensitive_debug()` only when the debug shape has been checked
-- `.not_sensitive_json()` only when the full JSON is safe
+- `.not_sensitive_json()` only when `redactable/json` is enabled and the full JSON is safe
 
 Do not wrap user-provided strings as non-sensitive just because a log statement will not compile.
 
 ## Redacted JSON
 
 Use redacted JSON helpers when the sink needs structure.
+These helpers require `redactable/json`.
 
 ```rust
 use redactable::RedactedJsonExt;

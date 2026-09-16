@@ -37,12 +37,30 @@ that claim.
 |---|---|
 | ` ```rust ` | Compiles and runs. A failed `assert!` fails the build. |
 | ` ```rust,no_run ` | Compiles. Not executed. |
-| ` ```rust,compile_fail ` | Must **not** compile. If it starts compiling, that is reported. |
+| ` ```rust,compile_fail ` | Must **not** compile, **and** must fail for the documented reason. |
 | ` ```rust,ignore ` | Not checked. Needs a reason; see below. |
 | ` ```text `, ` ```toml `, … | Not Rust, not checked. |
 
 Anything else on a `rust` fence is an error, so `compile-fail` cannot silently
 become "compile and run".
+
+**A `compile_fail` block must declare the diagnostic it expects.** Checking only
+that compilation failed proves nothing: a block that fails on a typo passes just
+as happily as one that demonstrates the rule. Name a distinctive fragment of the
+real diagnostic, and the checker holds the block to it.
+
+````markdown
+<!-- harness-expect: PolicyField<Pii> -->
+```rust,compile_fail
+#[derive(Clone, serde::Serialize, redactable::Sensitive)]
+struct Account {
+    #[sensitive(redactable::Pii)]
+    user: User,
+}
+```
+````
+
+A `compile_fail` block without the directive is rejected outright.
 
 **Put the expected output in an assertion, not a comment.** A comment reading
 `// "al***@example.com"` cannot fail. `assert_eq!` can, and then the
@@ -96,10 +114,23 @@ for genuine fragments — a lone struct field, a snippet whose surrounding code
 would swamp the point — and record why. A skip is an unverified claim in a
 document whose purpose is to be trusted.
 
+## Release drift
+
+```sh
+python3 harness/check_examples.py --check-latest
+```
+
+The example check pins an exact version, so it keeps passing against that crate
+after a newer one ships. This compares the pin against the crates.io index and
+exits non-zero when it has fallen behind. CI runs it weekly as an advisory job.
+
+It never edits the pin. Deciding that the skills now describe a different crate
+is a review, not an automatic bump.
+
 ## Self-test
 
 `selftest.py` runs the checker against fixtures that are known-good and
-known-broken, and asserts each verdict. It covers the inverted case that matters
-most: a `compile_fail` block that starts compiling must be reported, because
-that is how a crate change turns a documented anti-pattern into valid code
-without anyone noticing. Run it after changing the checker.
+known-broken, and asserts each verdict. It covers the cases that matter most: a `compile_fail` block that starts
+compiling, one that fails for the wrong reason, and one with no declared
+expectation at all. Each is a way a documented anti-pattern quietly stops being
+demonstrated. Run it after changing the checker.

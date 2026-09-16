@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Catches drift from a new redactable release even when nothing here changed.
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -28,3 +27,15 @@ jobs:
 
       - name: Check skill examples
         run: python3 harness/check_examples.py
+
+  pin:
+    name: redactable pin is current
+    runs-on: ubuntu-latest
+    # The example check pins an exact version, so it cannot notice a new
+    # release on its own. This is the signal that the pin has fallen behind.
+    # It is advisory: a new release does not mean the skills are wrong yet.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare the pin against crates.io
+        run: python3 harness/check_examples.py --check-latest

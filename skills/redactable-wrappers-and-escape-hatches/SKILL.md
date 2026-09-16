@@ -5,162 +5,202 @@ metadata:
   skillcatalog/display_name: "Redactable Wrappers And Escape Hatches"
   skillcatalog/author: "Salvatore Formisano"
   skillcatalog/created_at: "2026-04-29T15:18:46Z"
-  skillcatalog/updated_at: "2026-06-29T10:58:00Z"
+  skillcatalog/updated_at: "2026-09-16T00:00:00Z"
 ---
 # Redactable Wrappers And Escape Hatches
 
-Use this skill when a field cannot be handled cleanly by derive macros, or when a logging boundary needs an explicit safe wrapper.
+Targets `redactable` 0.13. Use when a field cannot be handled by a derive, or when a logging boundary needs an explicit wrapper.
 
-Choose the narrowest wrapper or escape hatch that states the intended safety behavior. Treat every escape hatch as a leak risk until the call site proves otherwise.
+Choose the narrowest wrapper that states the intended behavior. Treat every bypass as a leak risk until the call site proves otherwise.
+
+## Choosing
+
+| Need | Use |
+|---|---|
+| Sensitive leaf carrying its own policy | `SensitiveValue<T, P>` |
+| Public field in a struct you own, including a foreign type | `#[not_sensitive]` on the field |
+| Foreign value at a `Redactable`-bounded boundary, whose whole content is reviewed public | `BypassRedaction<T>` |
+| Public value logged through `Display` | `BypassDisplayRedaction<T>` |
+| Public value logged through `Debug` | `BypassDebugRedaction<T>` |
+| Borrowed public value logged as raw JSON | `BypassJsonRedaction<'_, T>` |
+| Author-composed summary text | `BypassTextRedaction(String)` |
+| Public value using slog's native typed output | `BypassRedactionMarker<T>` |
+
+**Must-do:** A foreign field inside a struct you own does **not** need a wrapper. Annotate it `#[not_sensitive]` — the declaration sits on the field it describes and the field keeps its own type. Reach for `BypassRedaction<T>` only when an API demands `Redactable` on a value you cannot annotate.
+
+Every `Bypass*` member is a tuple struct with a public field. Construction is the declaration: `BypassDebugRedaction(&value)`, `BypassTextRedaction(summary)`. There are no extension-method constructors.
 
 ## `SensitiveValue<T, P>`
 
-Use `SensitiveValue<T, P>` for a sensitive leaf value that should carry its policy in the type.
+Use it for a sensitive leaf that should carry its policy in the type.
 
 ```rust
 use redactable::{Sensitive, SensitiveValue, Token};
 
-#[derive(Clone, Sensitive)]
+#[derive(Clone, serde::Serialize, Sensitive)]
 struct AuthConfig {
-    api_key: SensitiveValue<String, Token>,
+    api_key: SensitiveValue<String, Token>,   // unannotated: the wrapper declares itself
 }
+
+let key = SensitiveValue::<String, Token>::from("sk-secret-key".to_owned());
+assert_eq!(key.redacted(), "*********-key");
 ```
 
-Rely on `Debug` and `.redacted()` for redacted output. With `redactable/json`, `SensitiveValue<T, P>` serializes and deserializes the raw inner value; that mirrors source-of-truth data, not diagnostic redaction. Call `.expose()` only when crossing a boundary that must consume raw data, such as an outbound API request, database write, queue message, or crypto/signing call. Before adding `.expose()`, verify the value is not formatted, logged, included in errors, or passed to telemetry on the same path.
+- `Debug` shows the **policy-redacted** value, not a flat placeholder.
+- It has no `Display`, so accidental `{}` formatting does not compile.
+- `.redacted()` returns the policy text; `.to_redacted()` carries that same text.
+- It implements `ToRedacted`, `slog::Value` + `SlogRedacted`, and `TracingRedacted`.
+- `Serialize` and `Deserialize` pass the **raw** inner value through, for transport and storage.
 
-Prefer `SensitiveValue<T, P>` when accidental raw formatting is a real risk, when the value type comes from another crate, or when a `Sensitive` container needs a leaf with an explicit policy.
+Three accessors hand back the raw value: `.expose()`, `.expose_mut()`, and the consuming `.into_inner()`. Call any of them only when crossing a boundary that must consume raw data — an outbound API request, a database write, a queue message, a signing call. Before adding one, verify the value is not formatted, logged, put into an error, or serialized for diagnostics on the same path. `.into_inner()` deserves the most scrutiny: it drops the wrapper, so nothing downstream carries the policy any more.
+
+Prefer `SensitiveValue<T, P>` when accidental raw formatting is a real risk, when the value type comes from another crate, or when a leaf needs an explicit policy that follows it around.
 
 ## Sensitive Foreign Types
 
-For a sensitive type from another crate, define a local policy, implement `SensitiveWithPolicy<P>` for the foreign type, and store it as `SensitiveValue<ForeignType, LocalPolicy>`.
-
-Use this template only for types you cannot derive on locally:
+For a sensitive type from another crate, define a local policy, implement `SensitiveWithPolicy<P>` for the foreign type, and store it as `SensitiveValue<ForeignType, LocalPolicy>`. The orphan rule is satisfied because the policy is local.
 
 ```rust
+use redactable::{RedactionPolicy, SensitiveWithPolicy, TextPolicyKind, TextRedactionPolicy};
+
 #[derive(Clone, Copy)]
 struct MerchantPolicy;
 
-impl redactable::RedactionPolicy for MerchantPolicy {
-    fn policy() -> redactable::TextRedactionPolicy {
-        redactable::TextRedactionPolicy::keep_last(4)
+impl RedactionPolicy for MerchantPolicy {
+    type Kind = TextPolicyKind;
+
+    fn policy() -> TextRedactionPolicy {
+        TextRedactionPolicy::keep_last(4)
     }
 }
 
-impl redactable::SensitiveWithPolicy<MerchantPolicy> for MerchantAccount {
-    fn redact_with_policy(self, policy: &redactable::TextRedactionPolicy) -> Self {
-        self.with_redacted_id(policy.apply_to(self.id()))
+impl SensitiveWithPolicy<MerchantPolicy> for MerchantAccount {
+    fn redact_with_policy(self, policy: &TextRedactionPolicy) -> Self {
+        Self { id: policy.apply_to(&self.id), ..self }
     }
 
-    fn redacted_string(&self, policy: &redactable::TextRedactionPolicy) -> String {
-        policy.apply_to(self.id())
+    fn redacted_string(&self, policy: &TextRedactionPolicy) -> String {
+        policy.apply_to(&self.id)
     }
 }
 ```
 
-Do not implement a broad policy that preserves fields you have not audited.
+`SensitiveWithPolicy` powers `SensitiveValue<T, P>` only. It does not make a bare `#[sensitive(P)]` field of that type compile — direct annotated fields use separate policy-application traits.
 
-## `NotSensitiveValue<T>`
+`SensitiveValue` treats `T` as an atomic leaf and does not walk its fields. **Must-do:** Do not write a `redact_with_policy` that preserves fields you have not audited; a partial implementation looks redacted and is not.
 
-Use `NotSensitiveValue<T>` for a foreign type that is truly non-sensitive and needs to pass through a `Sensitive` container.
+## `BypassRedaction<T>`
 
+Use it only to satisfy a `Redactable` bound on a value you do not own.
+
+<!-- harness-setup
+let foreign_config = ForeignConfig { timeout_ms: 500 };
+-->
 ```rust
-#[derive(Clone, redactable::Sensitive)]
-struct Config {
-    timeout: redactable::NotSensitiveValue<other_crate::Timeout>,
-}
+use redactable::{BypassRedaction, Redactable};
+
+fn audit<T: Redactable>(value: T) -> T { value.redact() }
+
+// `ForeignConfig` is from another crate and implements nothing of ours.
+let checked = audit(BypassRedaction(foreign_config));
+assert_eq!(checked.0.timeout_ms, 500); // passthrough: nothing was redacted
 ```
 
-Do not use it around a type that contains sensitive fields. It is a passthrough and does not walk nested values. With `redactable/json`, `NotSensitiveValue<T>` serializes and deserializes the raw inner value.
+It is a passthrough: `.redact()` returns the value unchanged, and `Serialize` emits the raw inner value. It does **not** implement `ToRedacted` — it carries raw data without choosing a logging format. To log the value, wrap it in `BypassJsonRedaction` or a sibling instead.
 
-For local non-sensitive types, prefer `#[derive(NotSensitive)]` or `#[derive(NotSensitiveDisplay)]`.
+**Must-do:** Do not use it around a type that contains sensitive fields. It does not walk nested values.
 
 ## `#[not_sensitive]`
 
-Use `#[not_sensitive]` when the field type should pass through unchanged and the field is genuinely safe.
+`#[not_sensitive]` declares the field public and skips traversal entirely.
 
-Good uses:
+Good uses: timestamps, operational IDs, retry decisions, transaction handles, status codes, foreign types whose complete output is known safe.
 
-- timestamps
-- operational IDs
-- retry decisions
-- transaction handles
-- foreign error/context types whose display is known safe
-
-Bad uses:
-
-- `String` fields with user input
-- nested `Sensitive` types
-- anything named `name`, `email`, `phone`, `address`, `token`, `secret`, `payload`, `metadata`, or `context` unless you have checked the data source
-
-Do not skip traversal on nested sensitive values:
+Bad uses: `String` fields with user input, nested sensitive types, and anything named `name`, `email`, `phone`, `address`, `token`, `secret`, `payload`, `metadata`, or `context` unless you have checked the data source.
 
 ```rust
-#[derive(redactable::Sensitive)]
+#[derive(Clone, serde::Serialize, redactable::Sensitive)]
 struct Signup {
     #[not_sensitive]
-    email: String, // Bad: this can leak the raw email in redacted output.
+    email: String,  // Bad: this leaks the raw email into every redacted output.
 }
 ```
 
-Remember that `#[not_sensitive]` skips traversal. If you put it on a nested sensitive value, inner sensitive fields will not be redacted.
+Since 0.12 the compiler requires a declaration on every field, so `#[not_sensitive]` now appears on ordinary operational fields too. **Must-do:** Do not let that volume dull review. A `#[not_sensitive]` on `u64 id` is routine; the same annotation on a `String` or a nested struct is a finding until justified.
 
-## Logging Boundary Wrappers
+Remember that `#[not_sensitive]` skips traversal: on a nested sensitive value, its inner fields are never redacted.
 
-Use these wrappers only when the value is safe and the logging sink needs an explicit formatting adapter:
+## Bypass Wrappers At Logging Boundaries
 
-| Wrapper | Meaning |
-|---|---|
-| `.not_sensitive_display()` | log simple operational values with `Display` |
-| `.not_sensitive_debug()` | log values whose `Debug` output is audited as safe |
-| `.not_sensitive_json()` | log raw JSON, requires `redactable/json` |
-| `.not_sensitive()` | pass through to a sink that formats the inner type safely |
+Use these only when the value's complete output is public and the sink needs a format selected.
 
+| Wrapper | Emits | Notes |
+|---|---|---|
+| `BypassDisplayRedaction(v)` | the `Display` text | owns or borrows; `into_inner()`; raw Serde |
+| `BypassDebugRedaction(v)` | the `Debug` text | owns or borrows; `into_inner()`; raw Serde |
+| `BypassJsonRedaction(&v)` | the `Serialize` form as JSON | borrowed only |
+| `BypassTextRedaction(s)` | the string you composed | validates nothing, allows empty text |
+| `BypassRedactionMarker(v)` | nothing of its own | no `ToRedacted`; forwards to slog's typed emitter, and accepts a type with neither `Display` nor `Debug` |
+
+<!-- harness-setup
+let status = 200_u16;
+let elapsed = std::time::Duration::from_millis(12);
+-->
 ```rust
+use redactable::{BypassDebugRedaction, BypassDisplayRedaction, ToRedacted};
+
 tracing::info!(
-    status = %response.status().not_sensitive_display(),
-    elapsed_ms = ?elapsed.as_millis().not_sensitive_debug(),
+    status = %BypassDisplayRedaction(status),
+    elapsed = %BypassDebugRedaction(elapsed).to_redacted().text(),
     "request complete"
 );
+
+assert_eq!(BypassDisplayRedaction(status).to_redacted().text(), "200");
+assert_eq!(BypassDebugRedaction(elapsed).to_redacted().text(), "12ms");
 ```
 
-Do not use `.not_sensitive_debug()` on request bodies, error contexts, metadata maps, or other values whose `Debug` output can include user input.
+**Must-do:** Do not use `BypassDebugRedaction` on request bodies, error contexts, metadata maps, or any value whose `Debug` output can include user input.
 
-## Redacted Output Wrappers
+**Must-do:** `BypassTextRedaction` makes no promise that the summary is complete or safe. Assert the intended summary in a logging test.
 
-Use these wrappers when the value has declared redaction support and the sink wants one already-redacted output value. They require `Redactable` (0.9+), which only derived or wrapped types implement — calling them on a raw `String` is a compile error.
+The Serde implementations of `BypassDisplayRedaction`, `BypassDebugRedaction`, and `BypassRedaction` expose the **raw** inner value for transport and storage. That is not redaction.
 
-| Wrapper | Meaning | Sinks |
-|---|---|---|
-| `.tracing_redacted_debug()` | redact a clone and emit a `Debug` field | tracing fields for structural `Sensitive` values |
-| `.redacted_output()` | redact and emit text using redacted `Debug` | slog fields, `ToRedactedOutput` sinks |
-| `.redacted_json()` | redact and then serialize to JSON, requires `redactable/json` | slog fields, `ToRedactedOutput` sinks |
-| `.redacted_display()` | emit redacted text for `SensitiveDisplay` types | any `Display` context, including tracing `%` |
+## Logging A Slice
 
+A container does not inherit `ToRedacted` from its elements: `Vec<T>` is not a logging value even when `T` is. Use `RedactedList` for a slice of producers.
+
+<!-- harness-setup
+let events = [
+    User { id: 1, email: "alice@example.com".into() },
+    User { id: 2, email: "bob@example.com".into() },
+    User { id: 3, email: "carol@example.com".into() },
+];
+-->
 ```rust
-use redactable::tracing::TracingRedactedDebugExt;
+use std::num::NonZeroUsize;
+use redactable::{RedactedList, ToRedacted};
 
-// tracing: redacted display text, or Debug of the redacted value.
-tracing::info!(
-    account = %account.redacted_display(),
-    payload = event.tracing_redacted_debug(),
-    "publishing safe telemetry"
+let value = RedactedList::new(&events, NonZeroUsize::new(2).unwrap()).to_redacted();
+
+assert_eq!(
+    value.json(),
+    serde_json::json!({
+        "items": [
+            {"id": 1, "email": "al***@example.com"},
+            {"id": 2, "email": "bo*@example.com"},
+        ],
+        "omitted": 1,
+    }),
 );
-
-// slog: the JSON wrappers implement slog::Value directly.
-slog::info!(logger, "publishing safe telemetry"; "payload" => &event.redacted_json());
 ```
 
-The JSON wrappers (`RedactedOutputRef`, `RedactedJsonRef`) implement `slog::Value` and `ToRedactedOutput`, not `Display` — they cannot be used with `%` in tracing macros. Prefer `.redacted_json()` for structured telemetry when `redactable/json` is enabled and the type implements `Serialize`. Do not substitute `.not_sensitive_json()` unless the raw JSON has been audited as non-sensitive.
+Only the included producers run, once each, in order. The omitted count is deliberately visible. The limit bounds item count only — not bytes, depth, or policy cost.
 
 ## Serialization Is Raw Unless You Redact First
 
-Treat serialization as raw output unless you explicitly redact before the boundary.
+**[guarantee]** `Serialize` on a `Sensitive` struct, on `SensitiveValue<T, P>`, and on `BypassRedaction<T>` emits the raw value. Deriving `Serialize` does not make serialization redacted; `Sensitive` requires `Serialize` precisely so it can serialize the redacted **clone** it builds internally.
 
-Expect `SensitiveValue<T, P>` to serialize its inner value unchanged when `redactable/json` is enabled. Use raw serialization for APIs, databases, and queues that require the real value.
-
-Apply the same rule to normal `Sensitive` structs: deriving `Serialize` does not mean serialization is redacted.
-
-If the output must be safe, call `.redact()`, `.redacted_json()`, `.slog_redacted_json()`, or another redacted boundary API before serializing or logging.
+Use raw serialization for APIs, databases, and queues that need the real value. When the output must be safe, go through `.to_redacted().json()`, `.redact()`, or a named logging adapter first.
 
 ## Cross-References
 

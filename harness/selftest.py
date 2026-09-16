@@ -38,8 +38,9 @@ struct Ok1 { #[sensitive(Secret)] s: String }
 assert_eq!(Ok1 { s: "x".into() }.to_redacted().json()["s"], "[REDACTED]");
 ```
 
-## Correctly marked compile_fail
+## Correctly marked compile_fail, with its expected diagnostic
 
+<!-- harness-expect: has no declared redaction behavior -->
 ```rust,compile_fail
 use redactable::Sensitive;
 
@@ -135,6 +136,32 @@ fn assertion_is_wrong() {
 }
 ```
 ''',
+    "compile_fail-without-expectation": '''---
+name: fixture-noexpect
+---
+# Fixture
+
+## Block
+
+```rust,compile_fail
+use redactable::Sensitive;
+#[derive(Clone, serde::Serialize, Sensitive)]
+struct Bad { name: String }
+```
+''',
+    "compile_fail-for-the-wrong-reason": '''---
+name: fixture-wrongreason
+---
+# Fixture
+
+## Block
+
+<!-- harness-expect: has no declared redaction behavior -->
+```rust,compile_fail
+// Claims to show the undeclared-leaf rule; actually fails on a type mismatch.
+let x: u32 = "not a number";
+```
+''',
     "compile_fail-that-compiles": '''---
 name: fixture-inverted
 ---
@@ -142,6 +169,7 @@ name: fixture-inverted
 
 ## Block
 
+<!-- harness-expect: some diagnostic that will never appear -->
 ```rust,compile_fail
 // Perfectly valid: marking it compile_fail is the mistake.
 fn main() { let _ = 1 + 1; }

@@ -39,6 +39,7 @@ REDACTABLE_VERSION = "0.13.0"
 FENCE = re.compile(r"^(?P<indent>[ \t]*)```(?P<info>[^\n`]*)$")
 SETUP = re.compile(r"<!--\s*harness-setup\s*(?P<body>.*?)-->", re.S)
 SKIP = re.compile(r"<!--\s*harness-skip:\s*(?P<reason>.*?)-->", re.S)
+EXPECT = re.compile(r"<!--\s*harness-expect:\s*(?P<needle>.*?)-->", re.S)
 HEADING = re.compile(r"^#{1,6}\s+(?P<title>.+?)\s*$")
 
 # Fence modifiers we understand. Anything else on a rust fence is an error, so a
@@ -56,6 +57,7 @@ class Block:
     code: str
     setup: str = ""
     skip_reason: str = ""
+    expect: str = ""
     ident: str = field(default="", init=False)
 
     @property
@@ -92,6 +94,7 @@ def parse_skill(path: Path) -> tuple[list[Block], list[str]]:
     heading = "(top)"
     pending_setup = ""
     pending_skip = ""
+    pending_expect = ""
     index = 0
 
     while index < len(lines):
@@ -104,10 +107,13 @@ def parse_skill(path: Path) -> tuple[list[Block], list[str]]:
             continue
 
         # Directives attach to the next fence, and only to the next one.
-        if "harness-setup" in line or "harness-skip" in line:
+        if "harness-setup" in line or "harness-skip" in line or "harness-expect" in line:
             comment, consumed = read_comment(lines, index)
             setup_match = SETUP.search(comment)
             skip_match = SKIP.search(comment)
+            expect_match = EXPECT.search(comment)
+            if expect_match:
+                pending_expect = expect_match.group("needle").strip()
             if setup_match:
                 pending_setup = setup_match.group("body").strip("\n")
             if skip_match:
@@ -139,12 +145,21 @@ def parse_skill(path: Path) -> tuple[list[Block], list[str]]:
                     code=body,
                     setup=pending_setup,
                     skip_reason=pending_skip,
+                    expect=pending_expect,
                 )
             )
-        elif pending_setup or pending_skip:
+            if mode == "compile_fail" and not pending_expect:
+                errors.append(
+                    f"{where}: a ```rust,compile_fail block needs "
+                    "<!-- harness-expect: <text from the expected diagnostic> -->. "
+                    "Without it the block passes when it fails for an unrelated reason, "
+                    "which proves nothing about the mistake it documents."
+                )
+        elif pending_setup or pending_skip or pending_expect:
             errors.append(f"{where}: harness directive attached to a non-Rust block")
         pending_setup = ""
         pending_skip = ""
+        pending_expect = ""
         index += consumed
 
     for ordinal, block in enumerate(blocks):
@@ -312,7 +327,15 @@ def main() -> int:
     parser.add_argument("--keep", action="store_true", help="keep the generated crate for inspection")
     parser.add_argument("--list", action="store_true", help="list blocks and their modes, then exit")
     parser.add_argument("--skills-dir", type=Path, help="check this directory instead of skills/ (used by selftest)")
+    parser.add_argument(
+        "--check-latest",
+        action="store_true",
+        help="report whether a redactable release newer than the pin exists, then exit",
+    )
     options = parser.parse_args()
+
+    if options.check_latest:
+        return check_latest()
 
     prelude = (HARNESS / "prelude.rs").read_text()
     root = options.skills_dir.resolve() if options.skills_dir else SKILLS
@@ -375,10 +398,15 @@ def main() -> int:
 
     # Run the blocks that carry assertions.
     run_blocks = [b for b in pass_blocks if b.mode == "run" and b.ident not in broken]
-    if run_blocks and not broken:
+    if run_blocks and not failures:
         print(f"running {len(run_blocks)} blocks ...", flush=True)
         for block in run_blocks:
             binary = BUILD / "target" / "debug" / block.ident
+            if not binary.is_file():
+                failures.append(
+                    f"{block.where}\n  built without error but produced no binary at {binary}"
+                )
+                continue
             outcome = subprocess.run([binary], capture_output=True, text=True)
             if outcome.returncode != 0:
                 detail = (outcome.stderr or outcome.stdout).strip()
@@ -389,13 +417,24 @@ def main() -> int:
     if fail_blocks:
         print(f"checking {len(fail_blocks)} compile_fail blocks ...", flush=True)
         for block in fail_blocks:
-            result = cargo(["build", "--bin", block.ident], BUILD / "fail")
+            result = cargo(
+                ["build", "--bin", block.ident, "--message-format=json"], BUILD / "fail"
+            )
             if result.returncode == 0:
                 failures.append(
                     f"{block.where}\n"
                     "  marked ```rust,compile_fail but it COMPILED.\n"
                     "  Either the crate changed and the skill is now wrong, or the\n"
                     "  example no longer demonstrates the mistake it describes."
+                )
+                continue
+            rendered = diagnostics(result.stdout)
+            if block.expect not in rendered:
+                failures.append(
+                    f"{block.where}\n"
+                    f"  failed to compile, but not for the documented reason.\n"
+                    f"  expected the diagnostic to mention: {block.expect!r}\n"
+                    f"  actual diagnostics:\n{indent_text(rendered[:1200] or '(none captured)')}"
                 )
 
     if not options.keep:
@@ -418,6 +457,72 @@ def main() -> int:
 
 def indent_text(text: str, prefix: str = "    ") -> str:
     return "\n".join(f"{prefix}{line}" for line in text.strip().splitlines())
+
+
+def check_latest() -> int:
+    """Report whether redactable has published a release newer than the pin.
+
+    The example check pins an exact version, so it passes indefinitely after a
+    new release: it keeps testing the old crate. This is the separate signal
+    that the pin has fallen behind. It never edits the pin — deciding that the
+    skills now describe a different crate is a review, not an automatic bump.
+    """
+    import urllib.error
+    import urllib.request
+
+    url = "https://index.crates.io/re/da/redactable"
+    request = urllib.request.Request(url, headers={"User-Agent": "redactable-skills-harness"})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = response.read().decode()
+    except (urllib.error.URLError, TimeoutError) as error:
+        print(f"could not reach the crates.io index: {error}")
+        return 0  # a network failure is not a drift signal
+
+    published = [
+        json.loads(line) for line in body.splitlines() if line.strip()
+    ]
+    live = [entry["vers"] for entry in published if not entry.get("yanked")]
+    if not live:
+        print("no published versions found")
+        return 0
+
+    def key(version: str) -> list[int]:
+        return [int(part) for part in re.findall(r"\d+", version)]
+
+    newest = max(live, key=key)
+    print(f"pinned:  {REDACTABLE_VERSION}")
+    print(f"newest:  {newest}")
+    if key(newest) > key(REDACTABLE_VERSION):
+        print(
+            f"\nredactable {newest} is newer than the pinned {REDACTABLE_VERSION}.\n"
+            "The example check still passes because it tests the pinned release.\n"
+            "Re-verify the skills against the new crate, then bump REDACTABLE_VERSION\n"
+            "in this file. Do not bump it to make a red build green."
+        )
+        return 1
+    print("\npin is current")
+    return 0
+
+
+def diagnostics(stdout: str) -> str:
+    """Concatenate the rendered compiler errors from a cargo JSON stream."""
+    rendered: list[str] = []
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if record.get("reason") != "compiler-message":
+            continue
+        message = record.get("message") or {}
+        if message.get("level") != "error":
+            continue
+        rendered.append((message.get("rendered") or message.get("message") or "").rstrip())
+    return "\n".join(rendered)
 
 
 def by_ident(blocks: list[Block]) -> dict[str, Block]:
